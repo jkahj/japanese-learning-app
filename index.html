@@ -592,6 +592,35 @@
     .prog-bar-fill  { height: 100%; border-radius: 5px; transition: width .6s ease; }
     .prog-bar-count { width: 30px; font-size: 12px; font-weight: 700; text-align: right; color: var(--text-2); }
 
+    /* Due-today stat card */
+    .stat-due .stat-num { color: var(--red-light); text-shadow: 0 0 20px var(--red-glow); }
+    .stat-due-zero .stat-num { color: var(--green); text-shadow: 0 0 20px rgba(0,230,118,.4); }
+
+    /* Activity heatmap */
+    .heatmap-wrap {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-card); padding: 18px 20px; margin-bottom: 18px;
+    }
+    .heatmap-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+    .heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+    .heatmap-month-row { display: flex; gap: 3px; margin-bottom: 3px; padding-left: 20px; min-width: max-content; }
+    .hm-month-label { font-size: 9px; color: var(--muted); width: 16px; flex-shrink: 0; }
+    .heatmap-body { display: flex; gap: 3px; min-width: max-content; }
+    .hm-day-labels { display: flex; flex-direction: column; gap: 3px; margin-right: 2px; }
+    .hm-day-label { font-size: 9px; color: var(--muted); height: 14px; line-height: 14px; width: 16px; text-align: right; }
+    .hm-week { display: flex; flex-direction: column; gap: 3px; }
+    .hm-cell { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; cursor: default; }
+    .hm-cell.hm-empty { background: transparent; }
+    .hm-l0 { background: rgba(255,255,255,.07); }
+    .hm-l1 { background: rgba(229,57,53,.28); }
+    .hm-l2 { background: rgba(229,57,53,.52); }
+    .hm-l3 { background: rgba(229,57,53,.76); }
+    .hm-l4 { background: var(--red); box-shadow: 0 0 6px var(--red-glow); }
+    .hm-today-ring { outline: 1.5px solid rgba(255,255,255,.5); outline-offset: 1px; }
+    .hm-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+    .hm-legend-label { font-size: 10px; color: var(--muted); }
+    .hm-streak { font-size: 11px; color: var(--text-2); margin-left: 10px; }
+
     .jlpt-prog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 10px; }
     .jlpt-prog-card {
       background: var(--card); border: 1px solid var(--border);
@@ -15657,6 +15686,7 @@ function fcAnswer(correct) {
   // Wrong   → mark as due immediately (today) so it comes up again tomorrow
   const nextReview = correct ? srsNextDate(newLevel) : getTodayStr();
   setWD(w.id, { srsLevel: newLevel, status: statusMap[newLevel], nextReview });
+  logActivity();
   state.fc.current++;
   renderFlashcard();
 }
@@ -15748,6 +15778,7 @@ function quizAnswer(btn) {
   const newLevel = isCorrect ? Math.min(5,(wd.srsLevel||0)+1) : Math.max(0,(wd.srsLevel||0)-1);
   const statusMap = {0:'new',1:'learning',2:'learning',3:'review',4:'review',5:'mastered'};
   setWD(correct, { srsLevel:newLevel, status:statusMap[newLevel] });
+  logActivity();
 
   document.getElementById('quiz-next').style.display = 'block';
 }
@@ -15759,13 +15790,115 @@ function quizNext() {
 }
 
 /* ═══════════════════════════════════════════
+   ACTIVITY LOGGING (for heatmap)
+═══════════════════════════════════════════ */
+function getActivityLog() {
+  try { return JSON.parse(localStorage.getItem('jp_activity') || '{}'); }
+  catch(e) { return {}; }
+}
+function logActivity() {
+  const log = getActivityLog();
+  const today = getTodayStr();
+  log[today] = (log[today] || 0) + 1;
+  localStorage.setItem('jp_activity', JSON.stringify(log));
+}
+
+function buildHeatmap(log) {
+  const WEEKS = 16;
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const todayStr = getTodayStr();
+
+  // Start on the most recent Sunday at least WEEKS*7 days ago
+  const startDate = new Date(todayDate);
+  startDate.setDate(startDate.getDate() - (WEEKS * 7 - 1));
+  startDate.setDate(startDate.getDate() - startDate.getDay()); // back to Sunday
+
+  // Build week arrays
+  const weeks = [];
+  const cur = new Date(startDate);
+  while (weeks.length < WEEKS + 2 && cur <= todayDate) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+  // Trim to WEEKS
+  const displayWeeks = weeks.slice(-WEEKS);
+
+  // Month labels row
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let lastM = -1;
+  const monthLabels = displayWeeks.map(wk => {
+    const m = new Date(wk[0]).getMonth();
+    if (m !== lastM) { lastM = m; return MN[m]; }
+    return '';
+  });
+
+  const monthRow = `<div class="heatmap-month-row">
+    ${monthLabels.map(l => `<span class="hm-month-label">${l}</span>`).join('')}
+  </div>`;
+
+  const dayLbls = ['日','一','二','三','四','五','六'];
+  const dayLabelsHTML = `<div class="hm-day-labels">
+    ${dayLbls.map((d, i) => `<div class="hm-day-label">${i % 2 === 1 ? d : ''}</div>`).join('')}
+  </div>`;
+
+  const weeksHTML = displayWeeks.map(wk => `<div class="hm-week">${
+    wk.map(ds => {
+      if (ds > todayStr) return `<div class="hm-cell hm-empty"></div>`;
+      const c = log[ds] || 0;
+      const lv = c === 0 ? 0 : c <= 3 ? 1 : c <= 8 ? 2 : c <= 15 ? 3 : 4;
+      const ring = ds === todayStr ? ' hm-today-ring' : '';
+      return `<div class="hm-cell hm-l${lv}${ring}" title="${ds}：${c} 次複習"></div>`;
+    }).join('')
+  }</div>`).join('');
+
+  // Stats: streak + this month total
+  let streak = 0;
+  const d2 = new Date(todayDate);
+  while (true) {
+    const ds = d2.toISOString().slice(0, 10);
+    if ((log[ds] || 0) > 0) { streak++; d2.setDate(d2.getDate() - 1); }
+    else break;
+  }
+  const thisMonth = todayStr.slice(0, 7);
+  const monthTotal = Object.entries(log)
+    .filter(([d]) => d.startsWith(thisMonth))
+    .reduce((s, [, c]) => s + c, 0);
+
+  return `
+    <div class="heatmap-scroll">
+      ${monthRow}
+      <div class="heatmap-body">${dayLabelsHTML}${weeksHTML}</div>
+    </div>
+    <div class="hm-legend">
+      <span class="hm-legend-label">少</span>
+      <div class="hm-cell hm-l0"></div>
+      <div class="hm-cell hm-l1"></div>
+      <div class="hm-cell hm-l2"></div>
+      <div class="hm-cell hm-l3"></div>
+      <div class="hm-cell hm-l4"></div>
+      <span class="hm-legend-label">多</span>
+      <span class="hm-streak">🔥 連續 ${streak} 天</span>
+      <span class="hm-streak">本月 ${monthTotal} 次複習</span>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════
    PROGRESS
 ═══════════════════════════════════════════ */
 function renderProgress() {
+  const today = getTodayStr();
   const counts = { new:0, learning:0, review:0, mastered:0 };
+  let dueToday = 0;
   VOCAB.forEach(w => {
-    const st = getWD(w.id).status || 'new';
+    const wd = getWD(w.id);
+    const st = wd.status || 'new';
     counts[st] = (counts[st]||0) + 1;
+    if (wd.nextReview && st !== 'new' && wd.nextReview <= today) dueToday++;
   });
   const total = VOCAB.length;
 
@@ -15778,21 +15911,24 @@ function renderProgress() {
     if (st === 'learning' || st === 'review') jlptCounts[w.jlpt].learning++;
   });
 
-  const jlptCards = Object.entries(jlptCounts).map(([level, c]) => {
-    const pct = Math.round((c.mastered / c.total) * 100);
-    const color = JLPT_COLORS[level] || '#ccc';
-    return `<div class="jlpt-prog-card">
-      <div class="jlpt-prog-title" style="color:${color}">${level}</div>
-      <div class="jlpt-prog-bar"><div class="jlpt-prog-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="jlpt-prog-text">已精通 ${c.mastered}/${c.total}（${pct}%）</div>
-    </div>`;
-  }).join('');
+  const jlptCards = ['N5','N4','N3','N2','N1']
+    .filter(lv => jlptCounts[lv])
+    .map(level => {
+      const c = jlptCounts[level];
+      const pct = Math.round((c.mastered / c.total) * 100);
+      const color = JLPT_COLORS[level] || '#ccc';
+      return `<div class="jlpt-prog-card">
+        <div class="jlpt-prog-title" style="color:${color}">${level}</div>
+        <div class="jlpt-prog-bar"><div class="jlpt-prog-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="jlpt-prog-text">已精通 ${c.mastered}/${c.total}（${pct}%）　學習中 ${c.learning}</div>
+      </div>`;
+    }).join('');
 
   const barRows = [
     {key:'mastered',label:'已精通',color:JLPT_COLORS.N4},
-    {key:'review',label:'複習中',color:JLPT_COLORS.N5},
+    {key:'review',  label:'複習中',color:JLPT_COLORS.N5},
     {key:'learning',label:'學習中',color:'#f39c12'},
-    {key:'new',label:'未學',color:'#bdc3c7'},
+    {key:'new',     label:'未學',  color:'#bdc3c7'},
   ].map(({key,label,color}) => {
     const pct = total ? Math.round((counts[key]/total)*100) : 0;
     return `<div class="prog-bar-row">
@@ -15802,14 +15938,29 @@ function renderProgress() {
     </div>`;
   }).join('');
 
+  // ── Heatmap ──
+  const actLog = getActivityLog();
+  const heatmapHTML = buildHeatmap(actLog);
+  const dueClass = dueToday === 0 ? 'stat-due-zero' : 'stat-due';
+
   document.getElementById('progress-content').innerHTML = `
     <div class="stats-grid">
+      <div class="stat-card ${dueClass}">
+        <div class="stat-num">${dueToday}</div>
+        <div class="stat-lbl">${dueToday === 0 ? '✅ 今日已完成' : '📅 今日待複習'}</div>
+      </div>
       <div class="stat-card stat-total"><div class="stat-num">${total}</div><div class="stat-lbl">總單字數</div></div>
       <div class="stat-card stat-mastered"><div class="stat-num">${counts.mastered}</div><div class="stat-lbl">🟢 已精通</div></div>
       <div class="stat-card stat-review"><div class="stat-num">${counts.review}</div><div class="stat-lbl">🔵 複習中</div></div>
       <div class="stat-card stat-learning"><div class="stat-num">${counts.learning}</div><div class="stat-lbl">🟡 學習中</div></div>
       <div class="stat-card stat-new"><div class="stat-num">${counts.new}</div><div class="stat-lbl">⬜ 未學</div></div>
     </div>
+
+    <div class="heatmap-wrap">
+      <div class="heatmap-title"><span>📅 學習日曆</span></div>
+      ${heatmapHTML}
+    </div>
+
     <div class="prog-bar-wrap">
       <div class="prog-bar-title">整體學習進度</div>
       ${barRows}
