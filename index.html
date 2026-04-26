@@ -201,6 +201,63 @@
     .filter-btn[data-mode="curated"].active { border-color:#ffa726; color:#ffcc80; background:rgba(255,167,38,.13); box-shadow:0 0 0 3px rgba(255,167,38,.13); }
     .filter-btn[data-mode="all"].active     { border-color:#26a69a; color:#80cbc4; background:rgba(38,166,154,.13); box-shadow:0 0 0 3px rgba(38,166,154,.13); }
     .filter-btn[data-mode="curated"]:not(.active):hover { border-color:rgba(255,167,38,.45); color:var(--text); }
+
+    /* Manage promoted button */
+    .manage-promoted-btn { border-color:rgba(171,71,188,.55); color:#ce93d8; }
+    .manage-promoted-btn:hover { border-color:#ab47bc; color:#e1bee7; background:rgba(171,71,188,.1); }
+
+    /* ── Promoted Manager Modal ── */
+    .pm-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1100; align-items: center; justify-content: center; padding: 16px;
+    }
+    .pm-overlay.open { display: flex; }
+    .pm-modal {
+      background: #0d1428; border-radius: var(--radius-modal);
+      box-shadow: var(--shadow-modal); width: 100%; max-width: 560px;
+      max-height: 80vh; display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .pm-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .pm-header h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+    .pm-header .pm-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .pm-close {
+      width: 30px; height: 30px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,.07); color: var(--text-2); font-size: 16px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition);
+    }
+    .pm-close:hover { background: rgba(255,255,255,.14); }
+    .pm-body { overflow-y: auto; padding: 12px 16px; flex: 1; }
+    .pm-empty { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 14px; }
+    .pm-empty .pm-empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .pm-word-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 12px; border-radius: 10px; margin-bottom: 6px;
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+      transition: background var(--transition);
+    }
+    .pm-word-row:hover { background: rgba(255,255,255,.08); }
+    .pm-word-kanji { font-size: 20px; font-weight: 700; color: var(--text); min-width: 56px; }
+    .pm-word-reading { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .pm-word-def { flex: 1; font-size: 12px; color: var(--text-2); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pm-remove-btn {
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: rgba(229,57,53,.12); color: #ef9a9a; font-size: 14px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .pm-remove-btn:hover { background: rgba(229,57,53,.28); transform: scale(1.1); }
+    @media (max-width: 640px) {
+      .pm-modal { max-height: 88vh; border-radius: 18px; }
+      .pm-word-kanji { font-size: 17px; min-width: 44px; }
+    }
     .filter-btn[data-mode="all"]:not(.active):hover     { border-color:rgba(38,166,154,.45); color:var(--text); }
 
     .filter-label { font-size: 12px; color: var(--muted); font-weight: 600; }
@@ -1446,6 +1503,7 @@
         <span class="filter-row-label">模式</span>
         <button class="filter-btn active" data-mode="curated" id="vm-curated" onclick="setVocabMode('curated',this)">📚 精選 <span id="vm-curated-count">(30)</span></button>
         <button class="filter-btn" data-mode="all" id="vm-all" onclick="setVocabMode('all',this)">🌐 全部辭書 <span id="vm-all-count"></span></button>
+        <button class="filter-btn manage-promoted-btn" id="manage-promoted-btn" onclick="openPromotedManager()" title="管理自選單字">✏️ 管理 <span id="manage-promoted-count"></span></button>
         <span id="vocab-load-msg" style="font-size:11px;color:var(--muted)"></span>
         <button class="filter-btn filter-btn-dev" style="border-color:#27ae60;color:#27ae60" onclick="showTranslationTest()">🔍 翻譯驗證</button>
       </div>
@@ -1552,6 +1610,20 @@
 <!-- Dictionary detail modal -->
 <div id="dict-modal-overlay" class="dict-modal-overlay" onclick="closeDictModal(event)">
   <div class="dict-modal" id="dict-modal-content"></div>
+</div>
+
+<!-- Promoted Words Manager modal -->
+<div id="pm-overlay" class="pm-overlay" onclick="closePMOnBackdrop(event)">
+  <div class="pm-modal">
+    <div class="pm-header">
+      <div>
+        <h2>✏️ 管理自選單字</h2>
+        <div class="pm-count" id="pm-count"></div>
+      </div>
+      <button class="pm-close" onclick="closePromotedManager()">✕</button>
+    </div>
+    <div class="pm-body" id="pm-body"></div>
+  </div>
 </div>
 
 </div><!-- /#app -->
@@ -14616,6 +14688,7 @@ function handleAddToCurated(btn) {
     if (chip) { chip.style.background = 'rgba(255,215,64,.25)'; setTimeout(() => chip.style.background = '', 1200); }
     // Refresh vocab grid if it's visible
     if (state.section === 'vocab') renderVocab();
+    updateManagePromotedBtn();
   }
 }
 
@@ -17049,7 +17122,96 @@ async function showTranslationTest() {
 /* ── Firebase init (runs after DOM is ready + all scripts loaded) ── */
 document.addEventListener('DOMContentLoaded', () => {
   if (window.FB) FB.init();
+  updateManagePromotedBtn();
 });
+
+/* ═══════════════════════════════════════════
+   PROMOTED WORDS MANAGER
+═══════════════════════════════════════════ */
+function updateManagePromotedBtn() {
+  const list = getPromotedList();
+  const cnt  = document.getElementById('manage-promoted-count');
+  const btn  = document.getElementById('manage-promoted-btn');
+  if (!cnt || !btn) return;
+  if (list.length === 0) {
+    cnt.textContent = '';
+    btn.style.display = 'none';
+  } else {
+    cnt.textContent = `(${list.length})`;
+    btn.style.display = '';
+  }
+}
+
+function openPromotedManager() {
+  renderPromotedManager();
+  document.getElementById('pm-overlay').classList.add('open');
+}
+
+function closePromotedManager() {
+  document.getElementById('pm-overlay').classList.remove('open');
+}
+
+function closePMOnBackdrop(e) {
+  if (e.target === document.getElementById('pm-overlay')) closePromotedManager();
+}
+
+function renderPromotedManager() {
+  const list  = getPromotedList();
+  const body  = document.getElementById('pm-body');
+  const count = document.getElementById('pm-count');
+
+  count.textContent = list.length === 0 ? '尚無自選單字'
+    : `共 ${list.length} 個自選單字`;
+
+  if (list.length === 0) {
+    body.innerHTML = `
+      <div class="pm-empty">
+        <div class="pm-empty-icon">⭐</div>
+        <div>尚無自選單字</div>
+        <div style="font-size:12px;margin-top:8px;color:var(--muted)">
+          在辭書中搜尋單字，點擊「加入單字帳」即可加入。
+        </div>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = list.map(w => {
+    const defText = Array.isArray(w.d) ? w.d.join('；') : (w.d || '');
+    const reading = (w.r && w.r !== w.k) ? w.r : '';
+    return `
+      <div class="pm-word-row" id="pm-row-${CSS.escape(w.kanji || w.k)}">
+        <div>
+          <div class="pm-word-kanji">${w.kanji || w.k || ''}</div>
+          ${reading ? `<div class="pm-word-reading">${reading}</div>` : ''}
+        </div>
+        <div class="pm-word-def">${defText}</div>
+        <button class="pm-remove-btn" onclick="removePromotedWord(${JSON.stringify(w.kanji || w.k)})" title="移除">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function removePromotedWord(kanji) {
+  // Animate out the row
+  const escaped = CSS.escape(kanji);
+  const row = document.querySelector(`#pm-row-${escaped}`);
+  if (row) {
+    row.style.transition = 'opacity .2s, transform .2s';
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(16px)';
+    setTimeout(() => {
+      removeFromCurated(kanji);
+      renderPromotedManager();
+      updateManagePromotedBtn();
+      // Refresh vocab view so card disappears if in curated mode
+      renderVocab();
+    }, 200);
+  } else {
+    removeFromCurated(kanji);
+    renderPromotedManager();
+    updateManagePromotedBtn();
+    renderVocab();
+  }
+}
 
 /* ── Service Worker registration ── */
 if ('serviceWorker' in navigator) {
