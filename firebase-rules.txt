@@ -1,0 +1,24 @@
+// Firestore Security Rules
+// ─────────────────────────────────────────────────────────────
+// Paste these into:
+//   Firebase Console → Firestore Database → Rules → Edit rules
+//
+// Rule: each user can ONLY read/write their own data.
+// ─────────────────────────────────────────────────────────────
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each signed-in user owns exactly their subtree
+    match /users/{userId}/data/{document} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Block everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
