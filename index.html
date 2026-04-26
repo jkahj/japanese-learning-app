@@ -521,16 +521,24 @@
     .fc-btn-w:hover { background: var(--red); color: #fff; box-shadow: 0 4px 20px rgba(229,57,53,.5); }
     .fc-btn-c   { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.25); }
     .fc-btn-c:hover { background: var(--green); color: #000; box-shadow: 0 4px 20px rgba(0,230,118,.4); }
-    .fc-done    { text-align: center; padding: 40px; }
-    .fc-done h2 { font-size: 28px; margin-bottom: 12px; color: var(--text); }
-    .fc-done p  { color: var(--muted); margin-bottom: 20px; }
+    .fc-done       { text-align: center; padding: 40px 24px; }
+    .fc-done h2    { font-size: 28px; margin-bottom: 12px; color: var(--text); }
+    .fc-done p     { color: var(--muted); margin-bottom: 8px; }
+    .fc-done-btns  { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
     .restart-btn {
-      padding: 13px 32px; background: linear-gradient(135deg, var(--red), #b71c1c);
-      color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
-      cursor: pointer; font-family: inherit; box-shadow: 0 4px 20px rgba(229,57,53,.4);
+      padding: 13px 28px; background: rgba(255,255,255,.08);
+      color: var(--text-2); border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
       transition: all var(--transition);
     }
-    .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(229,57,53,.55); }
+    .restart-btn:hover { background: rgba(255,255,255,.14); color: var(--text); }
+    .fc-more-btn {
+      padding: 13px 28px; background: linear-gradient(135deg, #1565c0, #0d47a1);
+      color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit; box-shadow: 0 4px 20px rgba(21,101,192,.4);
+      transition: all var(--transition);
+    }
+    .fc-more-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(21,101,192,.55); }
 
     /* ── Quiz ── */
     .quiz-wrap    { max-width: 520px; margin: 0 auto; }
@@ -15601,9 +15609,13 @@ function renderFlashcard() {
   if (current >= words.length) {
     wrap.innerHTML = `<div class="fc-done">
       <div style="font-size:64px">🎉</div>
-      <h2>本輪學習完成！</h2>
-      <p>今天共學習了 ${words.length} 個單字，明天會有新的單字！</p>
-      <button class="restart-btn" onclick="initFlashcard()">重新練習</button>
+      <h2>今日卡片完成！</h2>
+      <p>今天共複習了 <strong style="color:var(--text)">${words.length}</strong> 張卡片，做得很好！</p>
+      <p style="font-size:13px;margin-top:0">明天會有新的單字等你 — 或繼續學更多！</p>
+      <div class="fc-done-btns">
+        <button class="fc-more-btn" onclick="loadMoreDictCards(10)">➕ 再學 10 個新單字</button>
+        <button class="restart-btn" onclick="initFlashcard()">🔄 重新練習</button>
+      </div>
     </div>`;
     return;
   }
@@ -15646,6 +15658,54 @@ function renderFlashcard() {
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">翻轉後選擇熟悉程度</div>`;
   state.fc.flipped = false;
+}
+
+/** Load a fresh batch of dict words the user hasn't seen yet today */
+async function loadMoreDictCards(count = 10) {
+  const wrap = document.getElementById('fc-wrap');
+  wrap.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><div>載入更多單字中…</div></div>`;
+
+  // Ensure dict data is loaded for every selected level
+  try {
+    await Promise.all(state.selectedLevels.map(lv => loadDictLevel(lv)));
+  } catch(e) { /* continue with whatever is loaded */ }
+
+  // Build the set of IDs already shown in this session
+  const shownIds = new Set(state.fc.words.map(w => w.id));
+
+  // Pick fresh words: not in SRS yet, not shown today
+  const freshWords = [];
+  for (const [word, d] of Object.entries(dictState.data)) {
+    if (state.selectedLevels.length && !state.selectedLevels.includes(d.j)) continue;
+    const id = 'd_' + word;
+    if (shownIds.has(id)) continue;              // already in today's session
+    if (getWD(id).nextReview) continue;          // already in SRS — skip
+    freshWords.push({ word, reading: d.r, defs: d.d, jlpt: d.j, pos: d.p });
+    if (freshWords.length >= count) break;
+  }
+
+  if (freshWords.length === 0) {
+    wrap.innerHTML = `<div class="fc-done">
+      <div style="font-size:64px">🏆</div>
+      <h2>已全部學完！</h2>
+      <p>沒有更多未學過的新單字了，你真棒！</p>
+      <div class="fc-done-btns">
+        <button class="restart-btn" onclick="initFlashcard()">🔄 重新練習</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Append to the current session and resume from the new batch
+  const newCards = freshWords.map(normCard);
+  const startIdx = state.fc.words.length;
+  state.fc.words   = [...state.fc.words, ...newCards];
+  state.fc.current = startIdx;
+  state.fc.flipped = false;
+  renderFlashcard();
+
+  // Pre-warm Chinese translations in the background
+  enrichCardsZh(newCards).catch(() => {});
 }
 
 async function flipCard() {
