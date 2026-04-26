@@ -766,8 +766,30 @@
     /* ═══════════════════════════════════════════
        GRAMMAR SECTION
     ═══════════════════════════════════════════ */
-    .grammar-filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .grammar-filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
     .grammar-filter-bar .filter-label { font-size: 12px; color: var(--muted); font-weight: 700; }
+
+    /* Grammar search bar */
+    .grammar-search-bar {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    .grammar-search-input {
+      flex: 1; padding: 9px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: rgba(255,255,255,.05); color: var(--text); font-size: 13px;
+      font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    .grammar-search-input:focus { border-color: rgba(229,57,53,.55); }
+    .grammar-search-input::placeholder { color: var(--muted); }
+    .grammar-search-clear {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,.1); color: var(--text-2); font-size: 12px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition);
+    }
+    .grammar-search-clear:hover { background: rgba(255,255,255,.2); }
+    .grammar-match-count { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    /* Highlight matched text */
+    .gc-highlight { background: rgba(255,215,64,.35); color: #ffd740; border-radius: 2px; padding: 0 1px; }
 
     .grammar-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1562,6 +1584,16 @@
       <button class="filter-btn"        data-glv="N3"   onclick="setGrammarFilter('N3',this)">N3</button>
       <button class="filter-btn"        data-glv="N2"   onclick="setGrammarFilter('N2',this)">N2</button>
       <button class="filter-btn"        data-glv="N1"   onclick="setGrammarFilter('N1',this)">N1</button>
+    </div>
+    <!-- Keyword search bar -->
+    <div class="grammar-search-bar">
+      <input id="grammar-search" class="grammar-search-input"
+             placeholder="搜尋文法型・標題・含義… (e.g. ている、進行、continuous)"
+             oninput="onGrammarSearch(this.value)"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+      <span class="grammar-match-count" id="grammar-match-count"></span>
+      <button class="grammar-search-clear" id="grammar-search-clear"
+              onclick="clearGrammarSearch()" style="display:none" title="清除搜尋">✕</button>
     </div>
     <!-- Grammar cards injected here -->
     <div id="grammar-grid" class="grammar-grid"></div>
@@ -14430,6 +14462,7 @@ function switchSection(name) {
 
 // Which level filter is currently active in the grammar tab
 state.grammarFilter = 'all';
+state.grammarSearch  = '';
 
 // Which card IDs are currently expanded
 const expandedCards = new Set();
@@ -14444,6 +14477,32 @@ function setGrammarFilter(lv, btn) {
   renderGrammar();
 }
 
+/** Search input handler */
+function onGrammarSearch(val) {
+  state.grammarSearch = val.trim().toLowerCase();
+  const clearBtn = document.getElementById('grammar-search-clear');
+  if (clearBtn) clearBtn.style.display = val.trim() ? '' : 'none';
+  renderGrammar();
+}
+
+/** Clear search */
+function clearGrammarSearch() {
+  state.grammarSearch = '';
+  const inp = document.getElementById('grammar-search');
+  if (inp) inp.value = '';
+  const clearBtn = document.getElementById('grammar-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderGrammar();
+}
+
+/** Highlight all occurrences of `q` inside `text` (safe HTML) */
+function grammarHighlight(text, q) {
+  if (!q) return text;
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(escaped, 'gi'),
+    m => `<span class="gc-highlight">${m}</span>`);
+}
+
 /** Toggle a grammar card open/closed */
 function toggleGrammarCard(id) {
   if (expandedCards.has(id)) expandedCards.delete(id);
@@ -14456,53 +14515,69 @@ function toggleGrammarCard(id) {
 /** Build and inject all grammar cards */
 function renderGrammar() {
   const lv = state.grammarFilter;
+  const q  = state.grammarSearch; // already lowercased
 
-  // Filter: respect both the filter-bar selection AND the user's chosen JLPT levels
+  // Filter: level + selected JLPT levels + keyword search
   const filtered = GRAMMAR.filter(g => {
     if (lv !== 'all' && g.lv !== lv) return false;
-    // If the user has selected specific levels, only show those
     if (state.selectedLevels.length && !state.selectedLevels.includes(g.lv)) return false;
+    if (q) {
+      const hay = [g.pat, g.title, g.mean, g.struct, g.expl, g.note || ''].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   });
+
+  // Update match count badge
+  const countEl = document.getElementById('grammar-match-count');
+  if (countEl) {
+    countEl.textContent = q
+      ? `${filtered.length} / ${GRAMMAR.filter(g => state.selectedLevels.length ? state.selectedLevels.includes(g.lv) : true).length} 項`
+      : '';
+  }
 
   const grid = document.getElementById('grammar-grid');
 
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
-      <div class="empty-icon">📖</div>
-      <div>目前選擇的等級（${state.selectedLevels.join('、')}）沒有對應的文法項目</div>
+      <div class="empty-icon">🔍</div>
+      <div>${q ? `找不到符合「${q}」的文法項目` : `目前選擇的等級（${state.selectedLevels.join('、')}）沒有對應的文法項目`}</div>
+      ${q ? `<button class="filter-btn" style="margin-top:14px" onclick="clearGrammarSearch()">清除搜尋</button>` : ''}
     </div>`;
     return;
   }
+
+  // Auto-expand cards when searching so matches are immediately visible
+  if (q) filtered.forEach(g => expandedCards.add(g.id));
 
   grid.innerHTML = filtered.map(g => {
     const lvClass  = `gc-${g.lv.toLowerCase()}`;
     const isOpen   = expandedCards.has(g.id);
     const examples = g.ex.map(e => `
       <div class="gc-ex">
-        <div class="gc-ex-ja">${e.ja}</div>
-        <div class="gc-ex-zh">${e.zh}</div>
+        <div class="gc-ex-ja">${grammarHighlight(e.ja, q)}</div>
+        <div class="gc-ex-zh">${grammarHighlight(e.zh, q)}</div>
       </div>`).join('');
     const noteHTML = g.note
-      ? `<div class="gc-note"><span class="gc-note-label">💡 注意</span>${g.note}</div>`
+      ? `<div class="gc-note"><span class="gc-note-label">💡 注意</span>${grammarHighlight(g.note, q)}</div>`
       : '';
 
     return `
     <div class="grammar-card ${isOpen ? 'open' : ''}" data-id="${g.id}">
       <!-- Clickable header -->
       <div class="gc-header" onclick="toggleGrammarCard('${g.id}')">
-        <div class="gc-pattern ${lvClass}">${g.pat}</div>
+        <div class="gc-pattern ${lvClass}">${grammarHighlight(g.pat, q)}</div>
         <div class="gc-title-wrap">
-          <div class="gc-title">${g.title}</div>
-          <div class="gc-mean">${g.mean}</div>
+          <div class="gc-title">${grammarHighlight(g.title, q)}</div>
+          <div class="gc-mean">${grammarHighlight(g.mean, q)}</div>
         </div>
         <span class="gc-lv-badge b-${g.lv.toLowerCase()}">${g.lv}</span>
         <span class="gc-chevron">▼</span>
       </div>
       <!-- Collapsible body -->
       <div class="gc-body">
-        <div class="gc-struct">${g.struct}</div>
-        <div class="gc-expl">${g.expl}</div>
+        <div class="gc-struct">${grammarHighlight(g.struct, q)}</div>
+        <div class="gc-expl">${grammarHighlight(g.expl, q)}</div>
         <div class="gc-examples">${examples}</div>
         ${noteHTML}
       </div>
