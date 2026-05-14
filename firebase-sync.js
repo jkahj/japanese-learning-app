@@ -16,6 +16,8 @@
    users/{uid}/data/wordData   → { wordId: { srsLevel, status, nextReview, note }, … }
    users/{uid}/data/seenWords  → { lvKey, seen:[…], cycle }
    users/{uid}/data/promoted   → { arr: [ …full VOCAB entries… ] }
+   users/{uid}/data/activity   → { "YYYY-MM-DD": count, … }          ← heatmap
+   users/{uid}/data/fcDone     → { date, shownCount, allShownIds[] }  ← daily session
 
    PUBLIC API  (window.FB)
    ───────────────────────
@@ -25,6 +27,8 @@
    FB.syncWordData(userData)   call after every setWD()
    FB.syncSeenWords(seenData)  call after jp_seen_v2 update
    FB.syncPromoted(arr)        call after savePromotedList()
+   FB.syncActivity(log)        call after logActivity() writes to localStorage
+   FB.syncFcDone(obj)          call after setFcDoneState() writes to localStorage
 
 ═══════════════════════════════════════════════════════════════ */
 
@@ -102,10 +106,12 @@
     setStatus('syncing', '載入雲端資料…');
 
     try {
-      const [wordSnap, seenSnap, promotedSnap] = await Promise.all([
+      const [wordSnap, seenSnap, promotedSnap, activitySnap, fcDoneSnap] = await Promise.all([
         docRef('wordData').get(),
         docRef('seenWords').get(),
         docRef('promoted').get(),
+        docRef('activity').get(),
+        docRef('fcDone').get(),
       ]);
 
       /* ── Word data (SRS progress) ── */
@@ -139,6 +145,37 @@
               }
             });
           }
+        }
+      }
+
+      /* ── Activity heatmap ── */
+      if (activitySnap.exists) {
+        const cloudLog = activitySnap.data() || {};
+        // Merge: per-date, keep the higher count so offline work is never lost
+        let localLog = {};
+        try { localLog = JSON.parse(localStorage.getItem('jp_activity') || '{}'); } catch(_) {}
+        const merged = Object.assign({}, cloudLog);
+        for (const [date, cnt] of Object.entries(localLog)) {
+          merged[date] = Math.max(merged[date] || 0, cnt);
+        }
+        localStorage.setItem('jp_activity', JSON.stringify(merged));
+        // Push merged result back to cloud if it differs from cloud
+        if (JSON.stringify(merged) !== JSON.stringify(cloudLog)) {
+          queueWrite('activity', merged);
+        }
+      }
+
+      /* ── Flashcard daily session ── */
+      if (fcDoneSnap.exists) {
+        const cloudFc = fcDoneSnap.data() || {};
+        let localFc = null;
+        try { localFc = JSON.parse(localStorage.getItem('jp_fc_done') || 'null'); } catch(_) {}
+        // Use whichever record has more shown words for today
+        const today = new Date().toISOString().slice(0, 10);
+        const cloudIsToday = cloudFc.date === today;
+        const localIsToday = localFc && localFc.date === today;
+        if (cloudIsToday && (!localIsToday || (cloudFc.shownCount || 0) > (localFc.shownCount || 0))) {
+          localStorage.setItem('jp_fc_done', JSON.stringify(cloudFc));
         }
       }
 
@@ -206,6 +243,15 @@
     queueWrite('promoted', { arr: arr || [] });
   }
 
+  function syncActivity(log) {
+    queueWrite('activity', log || {});
+  }
+
+  function syncFcDone(obj) {
+    if (!obj) return;
+    queueWrite('fcDone', obj);
+  }
+
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
     // Check that firebase-config.js was loaded and filled in
@@ -256,6 +302,6 @@
   }
 
   /* ── Expose public API ───────────────────────────────────── */
-  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted };
+  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone };
 
 })();

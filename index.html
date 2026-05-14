@@ -15577,6 +15577,7 @@ function getFcDoneState() {
 }
 function setFcDoneState(obj) {
   localStorage.setItem(FC_DONE_KEY, JSON.stringify(obj));
+  if (window.FB && window.FB.syncFcDone) window.FB.syncFcDone(obj);
 }
 function clearFcDoneState() {
   localStorage.removeItem(FC_DONE_KEY);
@@ -15910,6 +15911,7 @@ function logActivity() {
   const today = getTodayStr();
   log[today] = (log[today] || 0) + 1;
   localStorage.setItem('jp_activity', JSON.stringify(log));
+  if (window.FB && window.FB.syncActivity) window.FB.syncActivity(log);
 }
 
 function buildHeatmap(log) {
