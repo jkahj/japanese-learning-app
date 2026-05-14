@@ -581,7 +581,7 @@
       backdrop-filter: blur(10px); transition: all var(--transition);
     }
     .stat-card:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); }
-    .stat-num { font-size: 40px; font-weight: 900; }
+    .stat-num { font-size: clamp(22px, 5.5cqi, 40px); font-weight: 900; overflow-wrap: break-word; }
     .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: .5px; }
     .stat-total .stat-num   { color: var(--text); }
     .stat-mastered .stat-num{ color: var(--green); text-shadow: 0 0 20px rgba(0,230,118,.4); }
