@@ -16097,7 +16097,23 @@ function renderProgress() {
     counts[st] = (counts[st]||0) + 1;
     if (wd.nextReview && st !== 'new' && wd.nextReview <= today) dueToday++;
   });
-  const total = VOCAB.length;
+  const total = VOCAB.length; // used for progress bar percentages (curated list)
+
+  // 總單字數: full dict count for selected levels, not just the curated list
+  let dictTotal = total; // fallback until dict loads
+  if (Object.keys(dictState.data).length > 0) {
+    const lvSet = new Set(state.selectedLevels);
+    dictTotal = Object.values(dictState.data)
+      .filter(d => lvSet.size === 0 || lvSet.has(d.j)).length;
+  } else {
+    // Trigger background dict load so the number updates on next render
+    const toLoad = state.selectedLevels.filter(lv => !dictState.loaded.has(lv) && !dictState.loading.has(lv));
+    if (toLoad.length) {
+      Promise.allSettled(toLoad.map(lv => loadDictLevel(lv))).then(() => {
+        if (state.section === 'progress') renderProgress();
+      });
+    }
+  }
 
   const jlptCounts = {};
   VOCAB.forEach(w => {
@@ -16154,7 +16170,7 @@ function renderProgress() {
         <div class="stat-num">${dueToday}</div>
         <div class="stat-lbl">${dueToday === 0 ? '✅ 今日已完成' : '📅 今日待複習'}</div>
       </div>
-      <div class="stat-card stat-total"><div class="stat-num">${total}</div><div class="stat-lbl">總單字數</div></div>
+      <div class="stat-card stat-total"><div class="stat-num">${dictTotal.toLocaleString()}</div><div class="stat-lbl">總單字數</div></div>
       <div class="stat-card stat-mastered"><div class="stat-num">${counts.mastered}</div><div class="stat-lbl">🟢 已精通</div></div>
       <div class="stat-card stat-review"><div class="stat-num">${counts.review}</div><div class="stat-lbl">🔵 複習中</div></div>
       <div class="stat-card stat-learning"><div class="stat-num">${counts.learning}</div><div class="stat-lbl">🟡 學習中</div></div>
