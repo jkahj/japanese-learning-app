@@ -15795,7 +15795,9 @@ function fcAnswer(correct) {
   // Correct → schedule next review based on new level
   // Wrong   → mark as due immediately (today) so it comes up again tomorrow
   const nextReview = correct ? srsNextDate(newLevel) : getTodayStr();
-  setWD(w.id, { srsLevel: newLevel, status: statusMap[newLevel], nextReview });
+  // Once interacted, never revert to 未學 — minimum status is 'learning'
+  const status = statusMap[newLevel] === 'new' ? 'learning' : statusMap[newLevel];
+  setWD(w.id, { srsLevel: newLevel, status, nextReview });
   logActivity();
   updateStats(correct);
   // Record answer history to Firebase
@@ -15897,7 +15899,8 @@ function quizAnswer(btn) {
   const oldLevel = wd.srsLevel || 0;
   const newLevel = isCorrect ? Math.min(5, oldLevel + 1) : Math.max(0, oldLevel - 1);
   const statusMap = {0:'new',1:'learning',2:'learning',3:'review',4:'review',5:'mastered'};
-  setWD(correct, { srsLevel:newLevel, status:statusMap[newLevel] });
+  const statusQ = statusMap[newLevel] === 'new' ? 'learning' : statusMap[newLevel];
+  setWD(correct, { srsLevel:newLevel, status:statusQ });
   logActivity();
   updateStats(isCorrect);
   // Record quiz answer to Firebase
