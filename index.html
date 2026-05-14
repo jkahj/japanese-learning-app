@@ -15797,6 +15797,7 @@ function fcAnswer(correct) {
   const nextReview = correct ? srsNextDate(newLevel) : getTodayStr();
   setWD(w.id, { srsLevel: newLevel, status: statusMap[newLevel], nextReview });
   logActivity();
+  updateStats(correct);
   // Record answer history to Firebase
   if (window.FB && window.FB.logAnswerRecord) {
     window.FB.logAnswerRecord({ wId: w.id, r: correct ? 'c' : 'w', lb: oldLevel, la: newLevel, src: 'fc' });
@@ -15898,6 +15899,7 @@ function quizAnswer(btn) {
   const statusMap = {0:'new',1:'learning',2:'learning',3:'review',4:'review',5:'mastered'};
   setWD(correct, { srsLevel:newLevel, status:statusMap[newLevel] });
   logActivity();
+  updateStats(isCorrect);
   // Record quiz answer to Firebase
   if (window.FB && window.FB.logAnswerRecord) {
     window.FB.logAnswerRecord({ wId: correct, r: isCorrect ? 'c' : 'w', lb: oldLevel, la: newLevel, src: 'q' });
@@ -15925,6 +15927,74 @@ function logActivity() {
   log[today] = (log[today] || 0) + 1;
   localStorage.setItem('jp_activity', JSON.stringify(log));
   if (window.FB && window.FB.syncActivity) window.FB.syncActivity(log);
+}
+
+/* ═══════════════════════════════════════════
+   STATS COUNTERS (totalReviewed, totalCorrect, streak)
+═══════════════════════════════════════════ */
+const STATS_KEY = 'jp_stats';
+
+function getLocalStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveLocalStats(s) {
+  localStorage.setItem(STATS_KEY, JSON.stringify(s));
+}
+
+/** Compute currentStreak and longestStreak from the activity log. */
+function computeStreak(log) {
+  const sortedDates = Object.keys(log).filter(d => log[d] > 0).sort();
+  if (!sortedDates.length) return { current: 0, longest: 0 };
+
+  // Current streak: walk backward from today
+  let current = 0;
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  for (;;) {
+    const ds = d.toISOString().slice(0, 10);
+    if ((log[ds] || 0) > 0) { current++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+
+  // Longest streak: scan sorted dates for consecutive runs
+  let longest = 1, run = 1;
+  for (let i = 1; i < sortedDates.length; i++) {
+    const diff = (new Date(sortedDates[i]) - new Date(sortedDates[i - 1])) / 86400000;
+    if (diff === 1) { run++; if (run > longest) longest = run; }
+    else run = 1;
+  }
+  longest = Math.max(longest, current);
+
+  return { current, longest };
+}
+
+/**
+ * Call after every flashcard or quiz answer.
+ * Increments totalReviewed (always) and totalCorrect (if correct),
+ * recomputes streak, saves locally, and syncs to Firebase.
+ */
+function updateStats(isCorrect) {
+  const s = getLocalStats();
+  s.totalReviewed = (s.totalReviewed || 0) + 1;
+  if (isCorrect) s.totalCorrect = (s.totalCorrect || 0) + 1;
+
+  const log = getActivityLog();
+  const { current, longest } = computeStreak(log);
+  // Only allow longestStreak to grow, never shrink
+  s.longestStreak = Math.max(s.longestStreak || 0, longest);
+
+  saveLocalStats(s);
+
+  if (window.FB && window.FB.syncStats) {
+    window.FB.syncStats({
+      totalReviewed:  s.totalReviewed,
+      totalCorrect:   s.totalCorrect,
+      currentStreak:  current,
+      longestStreak:  s.longestStreak,
+      lastActiveDate: getTodayStr(),
+    });
+  }
 }
 
 function buildHeatmap(log) {
@@ -16067,6 +16137,14 @@ function renderProgress() {
   const heatmapHTML = buildHeatmap(actLog);
   const dueClass = dueToday === 0 ? 'stat-due-zero' : 'stat-due';
 
+  // ── Stats counters ──
+  const ls = getLocalStats();
+  const { current: curStreak, longest: longStreak } = computeStreak(actLog);
+  const totalReviewed = ls.totalReviewed || 0;
+  const totalCorrect  = ls.totalCorrect  || 0;
+  const accuracy = totalReviewed > 0 ? Math.round((totalCorrect / totalReviewed) * 100) : 0;
+  const bestStreak = Math.max(ls.longestStreak || 0, longStreak);
+
   document.getElementById('progress-content').innerHTML = `
     <div class="stats-grid">
       <div class="stat-card ${dueClass}">
@@ -16078,6 +16156,12 @@ function renderProgress() {
       <div class="stat-card stat-review"><div class="stat-num">${counts.review}</div><div class="stat-lbl">🔵 複習中</div></div>
       <div class="stat-card stat-learning"><div class="stat-num">${counts.learning}</div><div class="stat-lbl">🟡 學習中</div></div>
       <div class="stat-card stat-new"><div class="stat-num">${counts.new}</div><div class="stat-lbl">⬜ 未學</div></div>
+    </div>
+    <div class="stats-grid" style="margin-top:10px">
+      <div class="stat-card"><div class="stat-num">${totalReviewed.toLocaleString()}</div><div class="stat-lbl">📖 累計複習次數</div></div>
+      <div class="stat-card"><div class="stat-num">${accuracy}%</div><div class="stat-lbl">🎯 整體正確率</div></div>
+      <div class="stat-card"><div class="stat-num">🔥 ${curStreak}</div><div class="stat-lbl">當前連續天數</div></div>
+      <div class="stat-card"><div class="stat-num">🏆 ${bestStreak}</div><div class="stat-lbl">最長連續天數</div></div>
     </div>
 
     <div class="heatmap-wrap">

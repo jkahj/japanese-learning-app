@@ -20,6 +20,9 @@
    users/{uid}/data/fcDone     → { date, shownCount, allShownIds[] }  ← daily session
    users/{uid}/data/answerLog   → { "YYYY-MM-DD": [{wId,r,lb,la,src,t}] } ← per-word history
    users/{uid}/data/quizSessions→ { "YYYY-MM-DD": [{score,total,pct,t}] }   ← quiz summaries
+   users/{uid}/data/stats       → { totalReviewed, totalCorrect,            ← cached counters
+                                    currentStreak, longestStreak,
+                                    lastActiveDate }
 
    PUBLIC API  (window.FB)
    ───────────────────────
@@ -33,6 +36,7 @@
    FB.syncFcDone(obj)          call after setFcDoneState() writes to localStorage
    FB.logAnswerRecord(rec)     call in fcAnswer()/quizAnswer() — appends {wId,r,lb,la,src,t} to today's log
    FB.logQuizSession(score,total) call at quiz end — appends {score,total,pct,t} to today's sessions
+   FB.syncStats(stats)         call after updateStats() — queued write of all counters + streak
 
 ═══════════════════════════════════════════════════════════════ */
 
@@ -110,12 +114,13 @@
     setStatus('syncing', '載入雲端資料…');
 
     try {
-      const [wordSnap, seenSnap, promotedSnap, activitySnap, fcDoneSnap] = await Promise.all([
+      const [wordSnap, seenSnap, promotedSnap, activitySnap, fcDoneSnap, statsSnap] = await Promise.all([
         docRef('wordData').get(),
         docRef('seenWords').get(),
         docRef('promoted').get(),
         docRef('activity').get(),
         docRef('fcDone').get(),
+        docRef('stats').get(),
       ]);
 
       /* ── Word data (SRS progress) ── */
@@ -180,6 +185,26 @@
         const localIsToday = localFc && localFc.date === today;
         if (cloudIsToday && (!localIsToday || (cloudFc.shownCount || 0) > (localFc.shownCount || 0))) {
           localStorage.setItem('jp_fc_done', JSON.stringify(cloudFc));
+        }
+      }
+
+      /* ── Stats summary (counters + streak) ── */
+      if (statsSnap.exists) {
+        const cloudStats = statsSnap.data() || {};
+        let localStats = {};
+        try { localStats = JSON.parse(localStorage.getItem('jp_stats') || '{}'); } catch(_) {}
+        // Counters can only go up — take the max so no device loses its history
+        const merged = {
+          totalReviewed: Math.max(cloudStats.totalReviewed || 0, localStats.totalReviewed || 0),
+          totalCorrect:  Math.max(cloudStats.totalCorrect  || 0, localStats.totalCorrect  || 0),
+          longestStreak: Math.max(cloudStats.longestStreak || 0, localStats.longestStreak || 0),
+        };
+        localStorage.setItem('jp_stats', JSON.stringify(merged));
+        // If local was behind, push the merged result back
+        if (merged.totalReviewed > (cloudStats.totalReviewed || 0) ||
+            merged.totalCorrect  > (cloudStats.totalCorrect  || 0) ||
+            merged.longestStreak > (cloudStats.longestStreak || 0)) {
+          queueWrite('stats', merged);
         }
       }
 
@@ -270,6 +295,10 @@
       .catch(err => console.error('[FB] answerLog write error', err));
   }
 
+  function syncStats(stats) {
+    queueWrite('stats', stats || {});
+  }
+
   /** Record a completed quiz session summary (score / total / accuracy %). */
   function logQuizSession(score, total) {
     if (!_uid || !_db) return;
@@ -332,6 +361,6 @@
   }
 
   /* ── Expose public API ───────────────────────────────────── */
-  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone, logAnswerRecord, logQuizSession };
+  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone, logAnswerRecord, logQuizSession, syncStats };
 
 })();
