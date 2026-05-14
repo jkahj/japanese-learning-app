@@ -15565,10 +15565,58 @@ async function enrichCardsZh(cards) {
 }
 
 /* ═══════════════════════════════════════════
+   FLASHCARD SESSION STATE
+   Persists across tab switches so the done screen
+   isn't lost when the user navigates away and back.
+═══════════════════════════════════════════ */
+const FC_DONE_KEY = 'jp_fc_done';
+
+function getFcDoneState() {
+  try { return JSON.parse(localStorage.getItem(FC_DONE_KEY) || 'null'); }
+  catch(e) { return null; }
+}
+function setFcDoneState(obj) {
+  localStorage.setItem(FC_DONE_KEY, JSON.stringify(obj));
+}
+function clearFcDoneState() {
+  localStorage.removeItem(FC_DONE_KEY);
+}
+
+/** Shared HTML for the flashcard completion screen */
+function buildFcDoneHTML(shownCount) {
+  return `<div class="fc-done">
+    <div style="font-size:64px">🎉</div>
+    <h2>今日卡片完成！</h2>
+    <p>今天共複習了 <strong style="color:var(--text)">${shownCount}</strong> 張卡片，做得很好！</p>
+    <p style="font-size:13px;margin-top:0">明天會有新的單字等你 — 或繼續學更多！</p>
+    <div class="fc-done-btns">
+      <button class="fc-more-btn" onclick="loadMoreDictCards(10)">➕ 再學 10 個新單字</button>
+      <button class="restart-btn" onclick="restartFlashcardSession()">🔄 重新練習</button>
+    </div>
+  </div>`;
+}
+
+/** 重新練習: clear the done state and restart from today's original 20 cards */
+function restartFlashcardSession() {
+  clearFcDoneState();
+  initFlashcard();
+}
+
+/* ═══════════════════════════════════════════
    FLASHCARD (SRS)
 ═══════════════════════════════════════════ */
 async function initFlashcard() {
   const wrap = document.getElementById('fc-wrap');
+
+  // If the user already finished today's session, show done screen directly
+  // without resetting state — this prevents cards reappearing after tab switch
+  const fcDone = getFcDoneState();
+  if (fcDone && fcDone.date === getTodayStr()) {
+    wrap.innerHTML = buildFcDoneHTML(fcDone.shownCount);
+    startMidnightWatcher();
+    return;
+  }
+
   wrap.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><div>載入今日單字中…</div></div>`;
 
   const { cards, isNew, dateStr, fallback, seenCount, totalWords, cycle, cycleReset, dueCount, newCount } = await getDailyCards();
@@ -15607,16 +15655,13 @@ function renderFlashcard() {
   const { words, current } = state.fc;
   const wrap = document.getElementById('fc-wrap');
   if (current >= words.length) {
-    wrap.innerHTML = `<div class="fc-done">
-      <div style="font-size:64px">🎉</div>
-      <h2>今日卡片完成！</h2>
-      <p>今天共複習了 <strong style="color:var(--text)">${words.length}</strong> 張卡片，做得很好！</p>
-      <p style="font-size:13px;margin-top:0">明天會有新的單字等你 — 或繼續學更多！</p>
-      <div class="fc-done-btns">
-        <button class="fc-more-btn" onclick="loadMoreDictCards(10)">➕ 再學 10 個新單字</button>
-        <button class="restart-btn" onclick="initFlashcard()">🔄 重新練習</button>
-      </div>
-    </div>`;
+    // Persist done state — merge all IDs shown so far (daily + any extras)
+    const today = getTodayStr();
+    const prev = getFcDoneState();
+    const prevIds = (prev && prev.date === today) ? (prev.allShownIds || []) : [];
+    const allShownIds = [...new Set([...prevIds, ...words.map(w => w.id)])];
+    setFcDoneState({ date: today, shownCount: allShownIds.length, allShownIds });
+    wrap.innerHTML = buildFcDoneHTML(allShownIds.length);
     return;
   }
   const w = words[current];
@@ -15670,16 +15715,20 @@ async function loadMoreDictCards(count = 10) {
     await Promise.all(state.selectedLevels.map(lv => loadDictLevel(lv)));
   } catch(e) { /* continue with whatever is loaded */ }
 
-  // Build the set of IDs already shown in this session
-  const shownIds = new Set(state.fc.words.map(w => w.id));
+  // Build dedup set from PERSISTED state (survives tab switches)
+  // + any words already in the current in-memory session
+  const today = getTodayStr();
+  const fcDone = getFcDoneState();
+  const persistedIds = (fcDone && fcDone.date === today) ? (fcDone.allShownIds || []) : [];
+  const shownIds = new Set([...persistedIds, ...state.fc.words.map(w => w.id)]);
 
-  // Pick fresh words: not in SRS yet, not shown today
+  // Pick fresh words: not in SRS yet, not shown in any session today
   const freshWords = [];
   for (const [word, d] of Object.entries(dictState.data)) {
     if (state.selectedLevels.length && !state.selectedLevels.includes(d.j)) continue;
     const id = 'd_' + word;
-    if (shownIds.has(id)) continue;              // already in today's session
-    if (getWD(id).nextReview) continue;          // already in SRS — skip
+    if (shownIds.has(id)) continue;     // already seen today (daily or extra)
+    if (getWD(id).nextReview) continue; // already in SRS — skip
     freshWords.push({ word, reading: d.r, defs: d.d, jlpt: d.j, pos: d.p });
     if (freshWords.length >= count) break;
   }
@@ -15690,7 +15739,7 @@ async function loadMoreDictCards(count = 10) {
       <h2>已全部學完！</h2>
       <p>沒有更多未學過的新單字了，你真棒！</p>
       <div class="fc-done-btns">
-        <button class="restart-btn" onclick="initFlashcard()">🔄 重新練習</button>
+        <button class="restart-btn" onclick="restartFlashcardSession()">🔄 重新練習</button>
       </div>
     </div>`;
     return;
