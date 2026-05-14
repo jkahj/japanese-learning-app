@@ -15797,6 +15797,10 @@ function fcAnswer(correct) {
   const nextReview = correct ? srsNextDate(newLevel) : getTodayStr();
   setWD(w.id, { srsLevel: newLevel, status: statusMap[newLevel], nextReview });
   logActivity();
+  // Record answer history to Firebase
+  if (window.FB && window.FB.logAnswerRecord) {
+    window.FB.logAnswerRecord({ wId: w.id, r: correct ? 'c' : 'w', lb: oldLevel, la: newLevel });
+  }
   state.fc.current++;
   renderFlashcard();
 }

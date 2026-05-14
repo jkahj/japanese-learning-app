@@ -18,6 +18,7 @@
    users/{uid}/data/promoted   → { arr: [ …full VOCAB entries… ] }
    users/{uid}/data/activity   → { "YYYY-MM-DD": count, … }          ← heatmap
    users/{uid}/data/fcDone     → { date, shownCount, allShownIds[] }  ← daily session
+   users/{uid}/data/answerLog  → { "YYYY-MM-DD": [{wId,r,lb,la,t}] } ← per-word history
 
    PUBLIC API  (window.FB)
    ───────────────────────
@@ -29,6 +30,7 @@
    FB.syncPromoted(arr)        call after savePromotedList()
    FB.syncActivity(log)        call after logActivity() writes to localStorage
    FB.syncFcDone(obj)          call after setFcDoneState() writes to localStorage
+   FB.logAnswerRecord(rec)     call in fcAnswer() — appends {wId,r,lb,la,t} to today's log
 
 ═══════════════════════════════════════════════════════════════ */
 
@@ -252,6 +254,20 @@
     queueWrite('fcDone', obj);
   }
 
+  /**
+   * Append one answer record to today's log via arrayUnion (non-debounced).
+   * Record shape: { wId, r: "c"|"w", lb: levelBefore, la: levelAfter, t: "HH:MM:SS" }
+   */
+  function logAnswerRecord(rec) {
+    if (!_uid || !_db) return;
+    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const hms   = new Date().toTimeString().slice(0, 8); // "HH:MM:SS"
+    const entry = Object.assign({}, rec, { t: hms });
+    docRef('answerLog')
+      .set({ [today]: firebase.firestore.FieldValue.arrayUnion(entry) }, { merge: true })
+      .catch(err => console.error('[FB] answerLog write error', err));
+  }
+
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
     // Check that firebase-config.js was loaded and filled in
@@ -302,6 +318,6 @@
   }
 
   /* ── Expose public API ───────────────────────────────────── */
-  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone };
+  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone, logAnswerRecord };
 
 })();
