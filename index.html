@@ -15799,7 +15799,7 @@ function fcAnswer(correct) {
   logActivity();
   // Record answer history to Firebase
   if (window.FB && window.FB.logAnswerRecord) {
-    window.FB.logAnswerRecord({ wId: w.id, r: correct ? 'c' : 'w', lb: oldLevel, la: newLevel });
+    window.FB.logAnswerRecord({ wId: w.id, r: correct ? 'c' : 'w', lb: oldLevel, la: newLevel, src: 'fc' });
   }
   state.fc.current++;
   renderFlashcard();
@@ -15833,6 +15833,10 @@ function renderQuiz() {
   if (current >= words.length) {
     const pct = Math.round((score / words.length) * 100);
     const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '👍' : '📚';
+    // Record completed quiz session to Firebase
+    if (window.FB && window.FB.logQuizSession) {
+      window.FB.logQuizSession(score, words.length);
+    }
     wrap.innerHTML = `<div class="quiz-result">
       <div style="font-size:64px">${emoji}</div>
       <div class="result-score">${score} / ${words.length}</div>
@@ -15889,10 +15893,15 @@ function quizAnswer(btn) {
 
   // Update SRS using the word's id key
   const wd = getWD(correct);
-  const newLevel = isCorrect ? Math.min(5,(wd.srsLevel||0)+1) : Math.max(0,(wd.srsLevel||0)-1);
+  const oldLevel = wd.srsLevel || 0;
+  const newLevel = isCorrect ? Math.min(5, oldLevel + 1) : Math.max(0, oldLevel - 1);
   const statusMap = {0:'new',1:'learning',2:'learning',3:'review',4:'review',5:'mastered'};
   setWD(correct, { srsLevel:newLevel, status:statusMap[newLevel] });
   logActivity();
+  // Record quiz answer to Firebase
+  if (window.FB && window.FB.logAnswerRecord) {
+    window.FB.logAnswerRecord({ wId: correct, r: isCorrect ? 'c' : 'w', lb: oldLevel, la: newLevel, src: 'q' });
+  }
 
   document.getElementById('quiz-next').style.display = 'block';
 }

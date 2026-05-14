@@ -18,7 +18,8 @@
    users/{uid}/data/promoted   → { arr: [ …full VOCAB entries… ] }
    users/{uid}/data/activity   → { "YYYY-MM-DD": count, … }          ← heatmap
    users/{uid}/data/fcDone     → { date, shownCount, allShownIds[] }  ← daily session
-   users/{uid}/data/answerLog  → { "YYYY-MM-DD": [{wId,r,lb,la,t}] } ← per-word history
+   users/{uid}/data/answerLog   → { "YYYY-MM-DD": [{wId,r,lb,la,src,t}] } ← per-word history
+   users/{uid}/data/quizSessions→ { "YYYY-MM-DD": [{score,total,pct,t}] }   ← quiz summaries
 
    PUBLIC API  (window.FB)
    ───────────────────────
@@ -30,7 +31,8 @@
    FB.syncPromoted(arr)        call after savePromotedList()
    FB.syncActivity(log)        call after logActivity() writes to localStorage
    FB.syncFcDone(obj)          call after setFcDoneState() writes to localStorage
-   FB.logAnswerRecord(rec)     call in fcAnswer() — appends {wId,r,lb,la,t} to today's log
+   FB.logAnswerRecord(rec)     call in fcAnswer()/quizAnswer() — appends {wId,r,lb,la,src,t} to today's log
+   FB.logQuizSession(score,total) call at quiz end — appends {score,total,pct,t} to today's sessions
 
 ═══════════════════════════════════════════════════════════════ */
 
@@ -268,6 +270,18 @@
       .catch(err => console.error('[FB] answerLog write error', err));
   }
 
+  /** Record a completed quiz session summary (score / total / accuracy %). */
+  function logQuizSession(score, total) {
+    if (!_uid || !_db) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const hms   = new Date().toTimeString().slice(0, 8);
+    const pct   = total > 0 ? Math.round((score / total) * 100) : 0;
+    const entry = { score, total, pct, t: hms };
+    docRef('quizSessions')
+      .set({ [today]: firebase.firestore.FieldValue.arrayUnion(entry) }, { merge: true })
+      .catch(err => console.error('[FB] quizSessions write error', err));
+  }
+
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
     // Check that firebase-config.js was loaded and filled in
@@ -318,6 +332,6 @@
   }
 
   /* ── Expose public API ───────────────────────────────────── */
-  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone, logAnswerRecord };
+  window.FB = { init, signIn, signOut, syncWordData, syncSeenWords, syncPromoted, syncActivity, syncFcDone, logAnswerRecord, logQuizSession };
 
 })();
