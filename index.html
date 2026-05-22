@@ -246,7 +246,7 @@
     .pm-word-kanji { font-size: 20px; font-weight: 700; color: var(--text); min-width: 56px; }
     .pm-word-reading { font-size: 11px; color: var(--muted); margin-top: 2px; }
     .pm-word-def { flex: 1; font-size: 12px; color: var(--text-2); line-height: 1.4;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .pm-remove-btn {
       flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; border: none;
       background: rgba(229,57,53,.12); color: #ef9a9a; font-size: 14px;
@@ -516,6 +516,23 @@
     .fc-meaning { font-size: 26px; font-weight: 700; color: var(--text); }
     .fc-tip     { font-size: 12px; color: var(--muted); margin-top: 4px; }
     .fc-btns    { display: flex; gap: 12px; width: 100%; max-width: 480px; }
+    /* ── Speak / TTS buttons ── */
+    .fc-speak-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 24px; opacity: .45; transition: opacity .2s, transform .15s;
+      padding: 4px 10px; line-height: 1; margin-top: 2px;
+    }
+    .fc-speak-btn:hover  { opacity: 1; }
+    .fc-speak-btn:active { transform: scale(.85); opacity: 1; }
+    .speak-btn {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 50%; cursor: pointer; color: rgba(255,255,255,.7);
+      width: 36px; height: 36px; font-size: 17px; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: all .2s; vertical-align: middle;
+    }
+    .speak-btn:hover  { background: rgba(255,255,255,.18); color: #fff; }
+    .speak-btn:active { transform: scale(.88); }
     .fc-btn     { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all var(--transition); font-family: inherit; }
     .fc-btn-w   { background: rgba(229,57,53,.15); color: #ff8880; border: 1px solid rgba(229,57,53,.25); }
     .fc-btn-w:hover { background: var(--red); color: #fff; box-shadow: 0 4px 20px rgba(229,57,53,.5); }
@@ -15199,7 +15216,12 @@ function openModal(id) {
       <button class="modal-close" onclick="closeModal()">×</button>
       <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
         <div>
-          <div class="w-kanji">${w.kanji}</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="w-kanji">${w.kanji}</div>
+            <button class="speak-btn" title="播放發音"
+              onclick="speakJapanese(this.dataset.r)"
+              data-r="${(w.hiragana||w.kanji).replace(/"/g,'&quot;')}">🔊</button>
+          </div>
           <div class="w-reading">${w.hiragana}</div>
           <div class="w-romaji">${w.romaji}</div>
           ${renderPitch(w.hiragana, w.pitch)}
@@ -15688,6 +15710,9 @@ function renderFlashcard() {
         <div class="fc-face fc-front">
           <div class="fc-main">${w.word}</div>
           <div class="fc-sub">${w.reading}</div>
+          <button class="fc-speak-btn" title="播放發音"
+            onclick="event.stopPropagation();speakJapanese(this.dataset.r)"
+            data-r="${(w.reading||w.word).replace(/"/g,'&quot;')}">🔊</button>
           <div class="fc-tip">點擊翻轉查看意思</div>
         </div>
         <div class="fc-face fc-back">
@@ -15915,6 +15940,18 @@ function quizNext() {
   state.quiz.current++;
   state.quiz.answered = false;
   renderQuiz();
+}
+
+/* ═══════════════════════════════════════════
+   VOICE / TTS
+═══════════════════════════════════════════ */
+function speakJapanese(text) {
+  if (!window.speechSynthesis || !text) return;
+  window.speechSynthesis.cancel();          // stop any ongoing speech
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang  = 'ja-JP';
+  utter.rate  = 1.0;
+  window.speechSynthesis.speak(utter);
 }
 
 /* ═══════════════════════════════════════════
@@ -17264,7 +17301,12 @@ function openDictModal(word) {
       <button class="dict-modal-close" onclick="closeDictModal()">×</button>
       <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
         <div>
-          <div class="dm-word">${word}</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="dm-word">${word}</div>
+            <button class="speak-btn" title="播放發音"
+              onclick="speakJapanese(this.dataset.r)"
+              data-r="${(reading||word).replace(/"/g,'&quot;')}">🔊</button>
+          </div>
           <div class="dm-reading">${reading}</div>
           <div class="dm-romaji">${romaji}</div>
           ${getPitchHTML(word, reading)}
