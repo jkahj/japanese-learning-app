@@ -16309,15 +16309,16 @@ function buildHeatmap(log) {
 ═══════════════════════════════════════════ */
 function renderProgress() {
   const today = getTodayStr();
+  // ── Stat card counts: iterate userData so they match the word list modal exactly ──
   const counts = { new:0, learning:0, review:0, mastered:0 };
   let dueToday = 0;
-  VOCAB.forEach(w => {
-    const wd = getWD(w.id);
+  for (const [, wd] of Object.entries(userData)) {
     const st = wd.status || 'new';
-    counts[st] = (counts[st]||0) + 1;
-    if (wd.nextReview && st !== 'new' && wd.nextReview <= today) dueToday++;
-  });
-  const total = VOCAB.length; // used for progress bar percentages (curated list)
+    counts[st] = (counts[st] || 0) + 1;
+    // Due = nextReview is set and is today or earlier
+    if (wd.nextReview && wd.nextReview <= today) dueToday++;
+  }
+  const total = Math.max(Object.keys(userData).length, 1); // for progress bar %
 
   // 總單字數: full dict count for selected levels, not just the curated list
   let dictTotal = total; // fallback until dict loads
