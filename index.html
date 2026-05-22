@@ -524,6 +524,14 @@
     }
     .fc-speak-btn:hover  { opacity: 1; }
     .fc-speak-btn:active { transform: scale(.85); opacity: 1; }
+    /* ── Flashcard image (Unsplash) ── */
+    .fc-img-box   { display: none; margin-bottom: 2px; }
+    .fc-img-photo {
+      width: 120px; height: 90px; object-fit: cover;
+      border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+      transition: opacity .3s;
+    }
+    .flashcard.has-image { height: 370px; }
     .speak-btn {
       background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
       border-radius: 50%; cursor: pointer; color: rgba(255,255,255,.7);
@@ -15708,6 +15716,7 @@ function renderFlashcard() {
     <div class="flashcard" id="fc-card" onclick="flipCard()">
       <div class="fc-inner">
         <div class="fc-face fc-front">
+          <div id="fc-img" class="fc-img-box"></div>
           <div class="fc-main">${w.word}</div>
           <div class="fc-sub">${w.reading}</div>
           <button class="fc-speak-btn" title="播放發音"
@@ -15729,6 +15738,8 @@ function renderFlashcard() {
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">翻轉後選擇熟悉程度</div>`;
   state.fc.flipped = false;
+  // Async: fetch & inject Unsplash image (no-op if key not set or word isn't a noun)
+  loadCardImage(w).catch(() => {});
 }
 
 /** Load a fresh batch of dict words the user hasn't seen yet today */
@@ -15952,6 +15963,124 @@ function speakJapanese(text) {
   utter.lang  = 'ja-JP';
   utter.rate  = 1.0;
   window.speechSynthesis.speak(utter);
+}
+
+/* ═══════════════════════════════════════════
+   UNSPLASH IMAGE — flashcard front pictures
+   Only shown for concrete nouns; cached in
+   localStorage so each term is fetched once.
+═══════════════════════════════════════════ */
+const UNSPLASH_ACCESS_KEY = 'PASTE_YOUR_UNSPLASH_ACCESS_KEY_HERE';
+const IMG_CACHE_KEY  = 'jp_img_cache';
+const IMG_CACHE_MAX  = 300;    // evict oldest when limit reached
+
+function getImgCache() {
+  try { return JSON.parse(localStorage.getItem(IMG_CACHE_KEY) || '{}'); }
+  catch(_) { return {}; }
+}
+function setImgCache(term, url) {
+  const cache = getImgCache();
+  const keys = Object.keys(cache);
+  if (keys.length >= IMG_CACHE_MAX) {
+    // Evict oldest 50 entries to make room
+    keys.slice(0, 50).forEach(k => delete cache[k]);
+  }
+  cache[term] = url;
+  try { localStorage.setItem(IMG_CACHE_KEY, JSON.stringify(cache)); } catch(_) {}
+}
+
+/** True only for concrete noun words that are likely to have good photos. */
+function isNounForImage(w) {
+  if (w.posCode === 'noun') return true;
+  if (w.pos && (w.pos.includes('名詞') || w.pos.toLowerCase().includes('noun'))) return true;
+  return false;
+}
+
+/**
+ * Extract an English keyword for the Unsplash search.
+ * Prefers the first ASCII meaning string; falls back to romaji.
+ */
+function getImageSearchTerm(w) {
+  // VOCAB curated words: meanings array may contain English strings
+  const raw = w.meanings;
+  if (Array.isArray(raw)) {
+    for (const m of raw) {
+      if (typeof m === 'string' && /^[\x00-\x7F]+$/.test(m) && m.trim().length > 1) {
+        // Strip parenthetical notes, take first clause
+        const clean = m.replace(/\s*\(.*?\)\s*/g, '').split(/[;,]/)[0].trim();
+        if (clean.length > 1) return clean;
+      }
+    }
+  }
+  // Dict words: look up JMdict definition
+  if (w.source === 'dict' && dictState.data && dictState.data[w.word]) {
+    const d = dictState.data[w.word].d;
+    if (Array.isArray(d) && d.length > 0) {
+      const first = String(d[0]).split(/[;,]/)[0].trim();
+      if (first.length > 1 && /^[\x00-\x7F]+$/.test(first)) return first;
+    }
+  }
+  // Final fallback: romaji
+  return w.romaji || w.word;
+}
+
+/**
+ * Fetches a photo URL for word w from Unsplash (with localStorage cache).
+ * Returns null if: key not set, word is not a noun, or fetch fails.
+ */
+async function fetchWordImage(w) {
+  if (!UNSPLASH_ACCESS_KEY || UNSPLASH_ACCESS_KEY.startsWith('PASTE_')) return null;
+  if (!isNounForImage(w)) return null;
+
+  const term = getImageSearchTerm(w);
+  if (!term) return null;
+
+  // Cache hit
+  const cache = getImgCache();
+  if (cache[term] !== undefined) return cache[term] || null; // null = known miss
+
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(term)}&orientation=squarish&content_filter=high`,
+      { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
+    );
+    if (!res.ok) { setImgCache(term, ''); return null; }  // cache miss to avoid retries
+    const photo = await res.json();
+    const url = photo?.urls?.small || photo?.urls?.thumb || '';
+    setImgCache(term, url);
+    return url || null;
+  } catch(_) {
+    return null;
+  }
+}
+
+/**
+ * After renderFlashcard() creates the DOM, asynchronously load an image
+ * and inject it into #fc-img.  Silently does nothing if not a noun or no key.
+ */
+async function loadCardImage(w) {
+  const url = await fetchWordImage(w);
+  if (!url) return;
+
+  // Guard: make sure the card is still showing the same word
+  const box = document.getElementById('fc-img');
+  if (!box) return;
+
+  const img = document.createElement('img');
+  img.src       = url;
+  img.alt       = w.word;
+  img.className = 'fc-img-photo';
+  img.onload = () => {
+    // Double-check the placeholder is still in the DOM (user hasn't moved on)
+    if (!document.getElementById('fc-img')) return;
+    box.innerHTML = '';
+    box.appendChild(img);
+    box.style.display = 'block';
+    // Expand card height to fit image
+    const card = document.getElementById('fc-card');
+    if (card) card.classList.add('has-image');
+  };
+  img.onerror = () => {};  // silently ignore broken images
 }
 
 /* ═══════════════════════════════════════════
