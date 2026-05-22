@@ -546,6 +546,9 @@
     .fc-btn-w:hover { background: var(--red); color: #fff; box-shadow: 0 4px 20px rgba(229,57,53,.5); }
     .fc-btn-c   { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.25); }
     .fc-btn-c:hover { background: var(--green); color: #000; box-shadow: 0 4px 20px rgba(0,230,118,.4); }
+    /* 已精通 button (for 複習中 cards) — blue-teal to distinguish from 已記住 */
+    .fc-btn-mastered   { flex:1; padding:14px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; transition:all var(--transition); font-family:inherit; background:rgba(68,138,255,.15); color:var(--blue); border:1px solid rgba(68,138,255,.3); }
+    .fc-btn-mastered:hover { background:var(--blue); color:#fff; box-shadow:0 4px 20px rgba(68,138,255,.5); }
     .fc-done       { text-align: center; padding: 40px 24px; }
     .fc-done h2    { font-size: 28px; margin-bottom: 12px; color: var(--text); }
     .fc-done p     { color: var(--muted); margin-bottom: 8px; }
@@ -1319,8 +1322,9 @@
     [data-theme="light"] .fc-mode-btn.active { border-color: var(--red); color: #c0392b; background: rgba(229,57,53,.08); }
 
     /* ── Flashcard answer buttons ── */
-    [data-theme="light"] .fc-btn-w { background: rgba(229,57,53,.09); color: #c0392b; border-color: rgba(229,57,53,.3); }
-    [data-theme="light"] .fc-btn-c { background: rgba(0,150,70,.09);  color: #1a7a40; border-color: rgba(0,150,70,.3); }
+    [data-theme="light"] .fc-btn-w        { background: rgba(229,57,53,.09); color: #c0392b; border-color: rgba(229,57,53,.3); }
+    [data-theme="light"] .fc-btn-c        { background: rgba(0,150,70,.09);  color: #1a7a40; border-color: rgba(0,150,70,.3); }
+    [data-theme="light"] .fc-btn-mastered { background: rgba(68,138,255,.09); color: #1a50c0; border-color: rgba(68,138,255,.3); }
 
     /* ── Jisho purple elements ── */
     [data-theme="light"] .jisho-pos     { color: #4a3fa0; }
@@ -1411,7 +1415,7 @@
       .flashcard { height: 240px; }
       .fc-kanji  { font-size: 42px; }
       .fc-meaning{ font-size: 20px; }
-      .fc-btn    { padding: 12px; font-size: 14px; }
+      .fc-btn, .fc-btn-mastered { padding: 12px; font-size: 14px; }
 
       /* ── Modal ── */
       .modal-box { width: 96vw; max-height: 88vh; border-radius: 18px; }
@@ -15696,7 +15700,15 @@ function renderFlashcard() {
     return;
   }
   const w = words[current];
-  const wd = getWD(w.id);
+  let wd = getWD(w.id);
+
+  // ── Mark new words as 學習中 the moment they appear ──
+  if ((wd.status || 'new') === 'new') {
+    setWD(w.id, { status: 'learning', srsLevel: 1, nextReview: addDays(1) });
+    wd = getWD(w.id);
+    if (window.FB && window.FB.syncWordData) window.FB.syncWordData(userData);
+  }
+
   const pct = Math.round((current / words.length) * 100);
   // Show Chinese if available, otherwise "翻譯中…" as a placeholder
   const _mSrc = w.zhMeanings || w.meanings;
@@ -15705,12 +15717,24 @@ function renderFlashcard() {
   const needsTranslation = w.source === 'dict' && !w.zhMeanings;
   const backDisplay = needsTranslation ? '⏳ 翻譯中…' : meaningBack;
 
+  // ── Dynamic button label based on current status ──
+  const isReviewCard = wd.status === 'review';
+  const confirmLabel = isReviewCard ? '✓ 已精通' : '✓ 已記住';
+  const confirmClass = isReviewCard ? 'fc-btn fc-btn-mastered' : 'fc-btn fc-btn-c';
+
+  // ── Status badge ──
+  const statusLabels = { new:'未學', learning:'學習中', review:'複習中', mastered:'已精通' };
+  const statusColors  = { new:'var(--muted)', learning:'var(--yellow)', review:'var(--blue)', mastered:'var(--green)' };
+  const curStatus  = wd.status || 'new';
+  const statusText = statusLabels[curStatus] || curStatus;
+  const statusClr  = statusColors[curStatus]  || 'var(--muted)';
+
   wrap.innerHTML = `
     <div class="fc-topbar">
       <div class="fc-count">${current+1} / ${words.length}</div>
       <div class="fc-progress"><div class="fc-progress-bar" style="width:${pct}%"></div></div>
       <div class="fc-mode-wrap">
-        <span style="font-size:12px;color:var(--muted)">SRS Lv.${wd.srsLevel||0}</span>
+        <span style="font-size:12px;color:${statusClr};font-weight:600">${statusText}</span>
       </div>
     </div>
     <div class="flashcard" id="fc-card" onclick="flipCard()">
@@ -15734,7 +15758,7 @@ function renderFlashcard() {
     </div>
     <div class="fc-btns" id="fc-btns" style="display:none">
       <button class="fc-btn fc-btn-w" onclick="fcAnswer(false)">✗ 不熟悉</button>
-      <button class="fc-btn fc-btn-c" onclick="fcAnswer(true)">✓ 已記住</button>
+      <button class="${confirmClass}" onclick="fcAnswer(true)">${confirmLabel}</button>
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">翻轉後選擇熟悉程度</div>`;
   state.fc.flipped = false;
@@ -15826,17 +15850,32 @@ function fcAnswer(correct) {
   const w = words[current];
   const wd = getWD(w.id);
   const oldLevel  = wd.srsLevel || 0;
-  const newLevel  = correct ? Math.min(5, oldLevel + 1) : Math.max(0, oldLevel - 1);
-  const statusMap = { 0:'new', 1:'learning', 2:'learning', 3:'review', 4:'review', 5:'mastered' };
-  // Correct → schedule next review based on new level
-  // Wrong   → mark as due immediately (today) so it comes up again tomorrow
-  const nextReview = correct ? srsNextDate(newLevel) : getTodayStr();
-  // Once interacted, never revert to 未學 — minimum status is 'learning'
-  const status = statusMap[newLevel] === 'new' ? 'learning' : statusMap[newLevel];
-  setWD(w.id, { srsLevel: newLevel, status, nextReview });
+  const curStatus = wd.status || 'learning';
+
+  let newStatus, newLevel, nextReview;
+
+  if (correct) {
+    // 3-tier promotion: 學習中 → 複習中 → 已精通
+    if (curStatus === 'review') {
+      newStatus    = 'mastered';
+      newLevel     = 5;
+      nextReview   = addDays(30);          // review again in 30 days
+    } else {
+      // learning (or any other) → review
+      newStatus    = 'review';
+      newLevel     = Math.max(2, oldLevel);
+      nextReview   = addDays(7);           // review again in 7 days
+    }
+  } else {
+    // Wrong: stay at current status, come back tomorrow
+    newStatus  = curStatus;
+    newLevel   = oldLevel;
+    nextReview = addDays(1);
+  }
+
+  setWD(w.id, { srsLevel: newLevel, status: newStatus, nextReview });
   logActivity();
   updateStats(correct);
-  // Record answer history to Firebase
   if (window.FB && window.FB.logAnswerRecord) {
     window.FB.logAnswerRecord({ wId: w.id, r: correct ? 'c' : 'w', lb: oldLevel, la: newLevel, src: 'fc' });
   }
