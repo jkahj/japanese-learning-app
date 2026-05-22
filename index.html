@@ -15960,8 +15960,9 @@ function speakJapanese(text) {
   if (!window.speechSynthesis || !text) return;
   window.speechSynthesis.cancel();          // stop any ongoing speech
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang  = 'ja-JP';
-  utter.rate  = 1.0;
+  utter.lang   = 'ja-JP';
+  utter.rate   = 0.8;   // slightly slower than native (1.0 = normal)
+  utter.volume = 1.0;   // max volume
   window.speechSynthesis.speak(utter);
 }
 
