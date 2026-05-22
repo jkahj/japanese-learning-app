@@ -609,6 +609,15 @@
       backdrop-filter: blur(10px); transition: all var(--transition);
     }
     .stat-card:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.15); }
+    .stat-card-link  { cursor: pointer; }
+    .stat-card-link:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.4); }
+    /* ── Word list modal rows ── */
+    .wl-row { display:flex; align-items:center; gap:14px; padding:11px 0; border-bottom:1px solid var(--border); cursor:pointer; transition:background var(--transition); border-radius:8px; padding-left:6px; }
+    .wl-row:last-child { border-bottom:none; }
+    .wl-row:hover { background:rgba(255,255,255,.05); }
+    .wl-word    { font-size:20px; font-weight:800; min-width:56px; }
+    .wl-reading { font-size:13px; color:var(--text-2); flex:1; }
+    .wl-jlpt    { font-size:11px; font-weight:700; opacity:.8; }
     .stat-num { font-size: clamp(22px, 5.5cqi, 40px); font-weight: 900; overflow-wrap: break-word; }
     .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: .5px; }
     .stat-total .stat-num   { color: var(--text); }
@@ -1708,6 +1717,11 @@
 <!-- Dictionary detail modal -->
 <div id="dict-modal-overlay" class="dict-modal-overlay" onclick="closeDictModal(event)">
   <div class="dict-modal" id="dict-modal-content"></div>
+</div>
+
+<!-- Word list modal (progress stat cards) -->
+<div id="wl-modal-overlay" class="modal-overlay" onclick="closeWordList(event)">
+  <div class="modal" id="wl-modal-content" style="max-width:520px"></div>
 </div>
 
 <!-- Promoted Words Manager modal -->
@@ -16372,14 +16386,14 @@ function renderProgress() {
 
   document.getElementById('progress-content').innerHTML = `
     <div class="stats-grid">
-      <div class="stat-card ${dueClass}">
+      <div class="stat-card stat-card-link ${dueClass}" onclick="openWordList('due')">
         <div class="stat-num">${dueToday}</div>
         <div class="stat-lbl">${dueToday === 0 ? '✅ 今日已完成' : '📅 今日待複習'}</div>
       </div>
       <div class="stat-card stat-total"><div class="stat-num">${dictTotal.toLocaleString()}</div><div class="stat-lbl">總單字數</div></div>
-      <div class="stat-card stat-mastered"><div class="stat-num">${counts.mastered}</div><div class="stat-lbl">🟢 已精通</div></div>
-      <div class="stat-card stat-review"><div class="stat-num">${counts.review}</div><div class="stat-lbl">🔵 複習中</div></div>
-      <div class="stat-card stat-learning"><div class="stat-num">${counts.learning}</div><div class="stat-lbl">🟡 學習中</div></div>
+      <div class="stat-card stat-card-link stat-mastered" onclick="openWordList('mastered')"><div class="stat-num">${counts.mastered}</div><div class="stat-lbl">🟢 已精通</div></div>
+      <div class="stat-card stat-card-link stat-review"   onclick="openWordList('review')"><div class="stat-num">${counts.review}</div><div class="stat-lbl">🔵 複習中</div></div>
+      <div class="stat-card stat-card-link stat-learning" onclick="openWordList('learning')"><div class="stat-num">${counts.learning}</div><div class="stat-lbl">🟡 學習中</div></div>
       <div class="stat-card stat-new"><div class="stat-num">${counts.new}</div><div class="stat-lbl">⬜ 未學</div></div>
       <div class="stat-card"><div class="stat-num">${totalReviewed.toLocaleString()}</div><div class="stat-lbl">📖 累計複習次數</div></div>
       <div class="stat-card"><div class="stat-num">${accuracy}%</div><div class="stat-lbl">🎯 整體正確率</div></div>
@@ -16404,7 +16418,11 @@ function renderProgress() {
    KEYBOARD SHORTCUTS
 ═══════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.getElementById('modal-overlay').classList.remove('open');
+  if (e.key === 'Escape') {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.getElementById('wl-modal-overlay')?.classList.remove('open');
+    document.body.style.overflow = '';
+  }
   if (state.section === 'flashcard') {
     if (e.key === ' ') { e.preventDefault(); flipCard(); }
     if (e.key === 'ArrowLeft') fcAnswer(false);
@@ -17542,6 +17560,86 @@ function saveDictNote() {
 function closeDictModal(e) {
   if (e && e.target !== document.getElementById('dict-modal-overlay')) return;
   document.getElementById('dict-modal-overlay').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════
+   WORD LIST MODAL  (progress stat card drill-down)
+═══════════════════════════════════════════ */
+function openWordList(filter) {
+  const today = getTodayStr();
+  const titles = {
+    due:      '📅 今日待複習',
+    mastered: '🟢 已精通',
+    review:   '🔵 複習中',
+    learning: '🟡 學習中',
+  };
+  const JLPT_CLRS = { N5:'var(--n5)', N4:'var(--n4)', N3:'var(--n3)', N2:'var(--n2)', N1:'var(--n1)' };
+  const jlptOrder = { N5:1, N4:2, N3:3, N2:4, N1:5 };
+
+  // Collect matching entries from userData
+  const results = [];
+  for (const [id, wd] of Object.entries(userData)) {
+    const st = wd.status || 'new';
+    let match = false;
+    if      (filter === 'due')      match = wd.nextReview && wd.nextReview <= today;
+    else if (filter === 'mastered') match = st === 'mastered';
+    else if (filter === 'review')   match = st === 'review';
+    else if (filter === 'learning') match = st === 'learning';
+    if (!match) continue;
+
+    // Look up display data
+    let word = '', reading = '', jlpt = '';
+    if (id.startsWith('d_')) {
+      const key = id.slice(2);
+      const d   = dictState.data && dictState.data[key];
+      if (d) { word = key; reading = d.r || ''; jlpt = d.j || ''; }
+    } else {
+      const v = VOCAB.find(v => v.id === id);
+      if (v) { word = v.kanji || v.word || ''; reading = v.hiragana || v.reading || ''; jlpt = v.jlpt || ''; }
+    }
+    if (!word) continue;
+    results.push({ id, word, reading, jlpt, wd });
+  }
+
+  // Sort by JLPT level then word
+  results.sort((a, b) => {
+    const ja = jlptOrder[a.jlpt] || 9, jb = jlptOrder[b.jlpt] || 9;
+    return ja !== jb ? ja - jb : a.word.localeCompare(b.word, 'ja');
+  });
+
+  const rows = results.map(r => {
+    const jClr = JLPT_CLRS[r.jlpt] || 'var(--muted)';
+    // Clicking a row opens the word detail modal (and closes this list first)
+    const handler = r.id.startsWith('d_')
+      ? `closeWordList();openDictModal(${JSON.stringify(r.word)})`
+      : `closeWordList();openModal(${JSON.stringify(r.id)})`;
+    return `<div class="wl-row" onclick="${handler.replace(/"/g,'&quot;')}">
+      <span class="wl-word">${r.word}</span>
+      <span class="wl-reading">${r.reading}</span>
+      <span class="wl-jlpt" style="color:${jClr}">${r.jlpt}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('wl-modal-content').innerHTML = `
+    <div class="modal-hd">
+      <button class="modal-close" onclick="closeWordList()">✕</button>
+      <div style="font-size:20px;font-weight:700">${titles[filter] || filter}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">${results.length} 個單字</div>
+    </div>
+    <div class="modal-bd">
+      ${results.length === 0
+        ? `<div style="text-align:center;padding:40px;color:var(--muted)">目前沒有單字</div>`
+        : rows}
+    </div>`;
+
+  document.getElementById('wl-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeWordList(e) {
+  if (e && e.target !== document.getElementById('wl-modal-overlay')) return;
+  document.getElementById('wl-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // Close dict modal on Escape
