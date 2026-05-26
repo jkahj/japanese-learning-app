@@ -1,0 +1,24 @@
+# Firebase
+.firebase/
+firebase-debug.log
+.firebaserc
+
+# Python
+__pycache__/
+*.pyc
+generate_icons.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Organisation folders (not part of the web app)
+_dev/
+_source/
+_backup/
+_anki/
+_docs/
