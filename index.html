@@ -23,19 +23,19 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
     /* ═══════════════════════════════════════════
-       DESIGN SYSTEM — 深夜 Midnight Premium
+       DESIGN SYSTEM — 暖夜 Warm & Gentle
     ═══════════════════════════════════════════ */
     :root {
-      --red: #e53935; --red-light: #ff5252; --red-bg: rgba(229,57,53,.1);
-      --red-glow: rgba(229,57,53,.28);
-      --navy: #080c18; --navy-light: #101828;
-      --green: #00e676; --yellow: #ffd740; --blue: #448aff;
-      --bg: #06091a; --card: rgba(255,255,255,.048); --border: rgba(255,255,255,.09);
-      --text: #dde4f5; --text-2: #94a3c8; --muted: #6b7a9f;
-      --n5: #448aff; --n4: #00e676; --n3: #ffd740; --n2: #ff9100; --n1: #ff5252;
-      --glass: rgba(10,14,28,.8);
-      --shadow-card: 0 4px 24px rgba(0,0,0,.45);
-      --shadow-modal: 0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06);
+      --red: #c0634a; --red-light: #d97b60; --red-bg: rgba(192,99,74,.1);
+      --red-glow: rgba(192,99,74,.28);
+      --navy: #1A110C; --navy-light: #261a14;
+      --green: #7ec88a; --yellow: #e8b86d; --blue: #8aabcc;
+      --bg: #1E1612; --card: rgba(255,240,220,.045); --border: rgba(255,220,180,.09);
+      --text: #EDE0D0; --text-2: #B89E88; --muted: #8A7060;
+      --n5: #8aabcc; --n4: #7ec88a; --n3: #e8b86d; --n2: #d4854a; --n1: #c07070;
+      --glass: rgba(28,18,12,.82);
+      --shadow-card: 0 4px 24px rgba(0,0,0,.4);
+      --shadow-modal: 0 32px 80px rgba(0,0,0,.65), 0 0 0 1px rgba(255,220,180,.07);
       --radius-card: 14px; --radius-modal: 20px;
       --transition: .2s ease;
     }
@@ -52,8 +52,8 @@
       font-family: 'Inter','Yu Gothic','Hiragino Kaku Gothic ProN','Meiryo',sans-serif;
       background: var(--bg); color: var(--text); min-height: 100vh;
       background-image:
-        radial-gradient(ellipse at 15% 0%,   rgba(229,57,53,.13) 0%, transparent 52%),
-        radial-gradient(ellipse at 85% 100%,  rgba(68,138,255,.09) 0%, transparent 52%);
+        radial-gradient(ellipse at 15% 0%,   rgba(192,99,74,.10) 0%, transparent 52%),
+        radial-gradient(ellipse at 85% 100%,  rgba(200,150,80,.06) 0%, transparent 52%);
       background-attachment: fixed;
       /* iOS safe-area: respect notch + home indicator */
       padding-top:    env(safe-area-inset-top);
@@ -64,7 +64,7 @@
 
     /* ── Header ── */
     header {
-      background: rgba(6,9,26,.85); backdrop-filter: blur(24px);
+      background: rgba(30,22,18,.88); backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-bottom: 1px solid rgba(255,255,255,.07);
       color: #fff; padding: 0 24px;
@@ -215,7 +215,7 @@
     }
     .pm-overlay.open { display: flex; }
     .pm-modal {
-      background: #0d1428; border-radius: var(--radius-modal);
+      background: #241810; border-radius: var(--radius-modal);
       box-shadow: var(--shadow-modal); width: 100%; max-width: 560px;
       max-height: 80vh; display: flex; flex-direction: column;
       overflow: hidden;
@@ -311,14 +311,14 @@
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: #0d1428; border-radius: var(--radius-modal);
-      border: 1px solid rgba(255,255,255,.1);
+      background: #241810; border-radius: var(--radius-modal);
+      border: 1px solid rgba(255,220,180,.1);
       max-width: 780px; width: 100%;
       max-height: 90vh; overflow-y: auto;
       box-shadow: var(--shadow-modal);
     }
     .modal-hd {
-      background: linear-gradient(135deg, rgba(229,57,53,.18) 0%, #0a0e1e 55%);
+      background: linear-gradient(135deg, rgba(192,99,74,.18) 0%, #1e1410 55%);
       color: #fff; padding: 26px 30px; border-radius: var(--radius-modal) var(--radius-modal) 0 0;
       border-bottom: 1px solid rgba(255,255,255,.08);
       position: sticky; top: 0; z-index: 10;
@@ -446,7 +446,7 @@
     .note-area:focus { border-color: var(--red); background: rgba(255,255,255,.07); box-shadow: 0 0 0 3px rgba(229,57,53,.12); }
     .save-note-btn {
       margin-top: 8px; padding: 8px 20px;
-      background: linear-gradient(135deg, var(--red), #b71c1c);
+      background: linear-gradient(135deg, var(--red), #8B3A24);
       color: #fff; border: none; border-radius: 10px;
       cursor: pointer; font-size: 13px; font-weight: 700;
       box-shadow: 0 4px 16px rgba(229,57,53,.35);
@@ -458,7 +458,7 @@
 
     /* ── Daily Banner ── */
     .fc-daily-banner {
-      background: linear-gradient(135deg, rgba(229,57,53,.15), rgba(8,12,24,.9));
+      background: linear-gradient(135deg, rgba(192,99,74,.15), rgba(30,22,18,.9));
       border: 1px solid rgba(229,57,53,.2); border-radius: 14px;
       padding: 14px 20px; display: flex; align-items: center;
       gap: 16px; flex-wrap: wrap; margin-bottom: 20px; color: #fff;
@@ -590,7 +590,7 @@
     .quiz-opt:disabled { cursor: default; }
     .quiz-next-btn {
       width: 100%; margin-top: 16px; padding: 14px;
-      background: linear-gradient(135deg, var(--red), #b71c1c);
+      background: linear-gradient(135deg, var(--red), #8B3A24);
       color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
       cursor: pointer; display: none; font-family: inherit;
       box-shadow: 0 4px 20px rgba(229,57,53,.35);
@@ -806,7 +806,7 @@
       box-shadow: var(--shadow-modal);
     }
     .dict-modal-hd {
-      background: linear-gradient(135deg, rgba(229,57,53,.18) 0%, #0a0e1e 55%);
+      background: linear-gradient(135deg, rgba(192,99,74,.18) 0%, #1e1410 55%);
       color: #fff; padding: 24px 28px; position: sticky; top: 0;
       border-radius: var(--radius-modal) var(--radius-modal) 0 0;
       border-bottom: 1px solid rgba(255,255,255,.08);
@@ -1017,7 +1017,7 @@
 
     .welcome-start-btn {
       padding: 15px 56px;
-      background: linear-gradient(135deg, var(--red), #b71c1c);
+      background: linear-gradient(135deg, var(--red), #8B3A24);
       color: #fff; border: none; border-radius: 14px;
       font-size: 17px; font-weight: 700; cursor: pointer;
       letter-spacing: 1px; font-family: inherit;
@@ -1067,21 +1067,21 @@
        LIGHT THEME — all dark-specific overrides
     ═══════════════════════════════════════════ */
     [data-theme="light"] {
-      --bg: #f0f2f8;
-      --card: rgba(255,255,255,.82);
-      --border: rgba(0,0,0,.09);
-      --text: #1a2035;
-      --text-2: #4a5568;
-      --muted: #8090a8;
-      --glass: rgba(240,242,248,.93);
-      --shadow-card: 0 4px 24px rgba(0,0,0,.09);
-      --shadow-modal: 0 32px 80px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
+      --bg: #FDF6EF;
+      --card: rgba(255,248,238,.88);
+      --border: rgba(160,100,60,.1);
+      --text: #3A2A1E;
+      --text-2: #6B5040;
+      --muted: #A08070;
+      --glass: rgba(253,246,239,.95);
+      --shadow-card: 0 4px 24px rgba(100,60,20,.09);
+      --shadow-modal: 0 32px 80px rgba(80,40,10,.16), 0 0 0 1px rgba(160,100,60,.1);
     }
 
     [data-theme="light"] body {
       background-image:
-        radial-gradient(ellipse at 15% 0%,   rgba(229,57,53,.07) 0%, transparent 52%),
-        radial-gradient(ellipse at 85% 100%,  rgba(68,138,255,.05) 0%, transparent 52%);
+        radial-gradient(ellipse at 15% 0%,   rgba(192,99,74,.08) 0%, transparent 52%),
+        radial-gradient(ellipse at 85% 100%,  rgba(200,150,80,.05) 0%, transparent 52%);
     }
 
     /* Scrollbar */
@@ -1090,8 +1090,8 @@
 
     /* Header */
     [data-theme="light"] header {
-      background: rgba(240,242,248,.93);
-      border-bottom-color: rgba(0,0,0,.08);
+      background: rgba(253,246,239,.95);
+      border-bottom-color: rgba(160,100,60,.08);
       box-shadow: 0 1px 0 rgba(255,255,255,.9), 0 4px 24px rgba(0,0,0,.08);
     }
     [data-theme="light"] .app-name { color: var(--text); }
@@ -1115,7 +1115,7 @@
     [data-theme="light"] .fb-sync-btn:hover { background: rgba(0,0,0,.1); border-color: rgba(0,0,0,.2); }
 
     /* Nav */
-    [data-theme="light"] nav { background: rgba(226,230,245,.93); border-bottom-color: rgba(0,0,0,.08); }
+    [data-theme="light"] nav { background: rgba(248,238,226,.93); border-bottom-color: rgba(160,100,60,.08); }
 
     /* Inputs */
     [data-theme="light"] .search-box,
@@ -18034,6 +18034,3 @@ if ('serviceWorker' in navigator) {
     </div>
     <div id="trans-test-content" style="padding:28px"></div>
   </div>
-</div>
-</body>
-</html>
