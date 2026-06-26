@@ -301,6 +301,13 @@
     .b-n1 { background: rgba(255,82,82,.18);   color: #ff8888; }
     .b-pos { background: rgba(255,255,255,.08); color: var(--muted); }
     .b-tag { background: rgba(68,138,255,.12);  color: #88b8ff; }
+    /* Register / "in the wild" tag colours — others fall back to .b-tag */
+    .t-anime  { background: rgba(236,64,122,.15); color:#f48fb1; }
+    .t-manga  { background: rgba(171,71,188,.15); color:#ce93d8; }
+    .t-biz    { background: rgba(38,166,154,.15); color:#80cbc4; }
+    .t-keigo  { background: rgba(255,167,38,.15); color:#ffcc80; }
+    .t-news   { background: rgba(120,144,156,.18); color:#b0bec5; }
+    .t-casual { background: rgba(102,187,106,.15); color:#a5d6a7; }
 
     /* ── Modal ── */
     .modal-overlay {
@@ -569,6 +576,21 @@
     .fc-more-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(21,101,192,.55); }
 
     /* ── Quiz ── */
+    .quiz-mode-bar { display:flex; gap:8px; max-width:520px; margin:0 auto 16px; }
+    .qm-btn { flex:1; padding:10px 8px; border:1.5px solid var(--border); border-radius:10px;
+              background:rgba(255,255,255,.04); color:var(--muted); cursor:pointer;
+              font-size:13px; font-weight:600; font-family:inherit; transition:all var(--transition); }
+    .qm-btn:hover { color:var(--text); border-color:rgba(229,57,53,.4); }
+    .qm-btn.active { color:var(--red-light); border-color:var(--red); background:rgba(229,57,53,.1); }
+    .quiz-listen-btn { width:120px; height:120px; border-radius:50%; border:none; cursor:pointer;
+                       font-size:52px; background:var(--red-bg); color:var(--red-light);
+                       box-shadow:0 0 40px var(--red-glow); transition:transform var(--transition); }
+    .quiz-listen-btn:hover { transform:scale(1.06); }
+    .quiz-listen-hint { font-size:13px; color:var(--muted); margin-top:14px; }
+    .cloze-sentence { font-size:26px; font-weight:700; line-height:1.6; color:var(--text); }
+    .cloze-blank { display:inline-block; min-width:64px; border-bottom:3px solid var(--red-light);
+                   color:var(--red-light); margin:0 4px; }
+    .cloze-zh { font-size:14px; color:var(--muted); margin-top:12px; }
     .quiz-wrap    { max-width: 520px; margin: 0 auto; }
     .quiz-hd      { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .quiz-score   { font-size: 13px; color: var(--muted); }
@@ -1699,6 +1721,11 @@
 
   <!-- ⑤ Quiz -->
   <div id="section-quiz" class="section">
+    <div class="quiz-mode-bar">
+      <button class="qm-btn active" data-qmode="normal" onclick="setQuizMode('normal')">📖 看字</button>
+      <button class="qm-btn"        data-qmode="listen" onclick="setQuizMode('listen')">🎧 聽力</button>
+      <button class="qm-btn"        data-qmode="cloze"  onclick="setQuizMode('cloze')">✏️ 克漏字</button>
+    </div>
     <div id="quiz-daily-banner" class="fc-daily-banner"></div>
     <div class="quiz-wrap" id="quiz-wrap"></div>
   </div>
@@ -1777,7 +1804,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['飲む'],
     similar:[],
-    tags:['#生活','#日常'],
+    tags:['#生活','#日常','#口語'],
   },
   {
     id:2, kanji:'飲む', hiragana:'のむ', romaji:'nomu', pitch:1,
@@ -1794,7 +1821,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['食べる'],
     similar:[],
-    tags:['#生活','#日常'],
+    tags:['#生活','#日常','#口語'],
   },
   {
     id:3, kanji:'行く', hiragana:'いく', romaji:'iku', pitch:0,
@@ -1811,7 +1838,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['来る'],
     similar:[],
-    tags:['#移動','#日常'],
+    tags:['#移動','#日常','#口語'],
   },
   {
     id:4, kanji:'来る', hiragana:'くる', romaji:'kuru', pitch:1,
@@ -1828,7 +1855,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['行く'],
     similar:[],
-    tags:['#移動','#日常'],
+    tags:['#移動','#日常','#口語'],
   },
   {
     id:5, kanji:'見る', hiragana:'みる', romaji:'miru', pitch:1,
@@ -1845,7 +1872,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['聞く'],
-    tags:['#娯楽','#日常'],
+    tags:['#娯楽','#日常','#口語'],
   },
   {
     id:6, kanji:'聞く', hiragana:'きく', romaji:'kiku', pitch:0,
@@ -1862,7 +1889,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['話す'],
-    tags:['#日常'],
+    tags:['#日常','#口語'],
   },
   {
     id:7, kanji:'話す', hiragana:'はなす', romaji:'hanasu', pitch:0,
@@ -1879,7 +1906,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['聞く'],
-    tags:['#日常','#コミュニケーション'],
+    tags:['#日常','#コミュニケーション','#口語'],
   },
   {
     id:8, kanji:'読む', hiragana:'よむ', romaji:'yomu', pitch:0,
@@ -1896,7 +1923,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['書く'],
-    tags:['#日常'],
+    tags:['#日常','#新聞'],
   },
   {
     id:9, kanji:'書く', hiragana:'かく', romaji:'kaku', pitch:0,
@@ -1913,7 +1940,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['読む'],
-    tags:['#日常'],
+    tags:['#日常','#商務'],
   },
   {
     id:10, kanji:'買う', hiragana:'かう', romaji:'kau', pitch:0,
@@ -1930,7 +1957,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['売る'],
     similar:[],
-    tags:['#生活','#買物'],
+    tags:['#生活','#買物','#口語'],
   },
   {
     id:11, kanji:'起きる', hiragana:'おきる', romaji:'okiru', pitch:2,
@@ -1947,7 +1974,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['寝る'],
     similar:[],
-    tags:['#生活','#日常'],
+    tags:['#生活','#日常','#口語'],
   },
   {
     id:12, kanji:'寝る', hiragana:'ねる', romaji:'neru', pitch:1,
@@ -1964,7 +1991,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['起きる'],
     similar:[],
-    tags:['#生活','#日常'],
+    tags:['#生活','#日常','#口語'],
   },
   {
     id:13, kanji:'閉める', hiragana:'しめる', romaji:'shimeru', pitch:2,
@@ -1985,7 +2012,7 @@ const VOCAB = [
     },
     antonyms:['開ける'],
     similar:['閉まる'],
-    tags:['#生活','#自他動詞'],
+    tags:['#生活','#自他動詞','#口語'],
   },
   {
     id:14, kanji:'閉まる', hiragana:'しまる', romaji:'shimaru', pitch:3,
@@ -2006,7 +2033,7 @@ const VOCAB = [
     },
     antonyms:['開く'],
     similar:['閉める'],
-    tags:['#生活','#自他動詞'],
+    tags:['#生活','#自他動詞','#口語'],
   },
   {
     id:15, kanji:'大きい', hiragana:'おおきい', romaji:'ookii', pitch:3,
@@ -2022,7 +2049,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['小さい'],
     similar:[],
-    tags:['#形容詞','#日常'],
+    tags:['#形容詞','#日常','#口語'],
   },
   {
     id:16, kanji:'小さい', hiragana:'ちいさい', romaji:'chiisai', pitch:3,
@@ -2038,7 +2065,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['大きい'],
     similar:[],
-    tags:['#形容詞','#日常'],
+    tags:['#形容詞','#日常','#口語'],
   },
   {
     id:17, kanji:'高い', hiragana:'たかい', romaji:'takai', pitch:2,
@@ -2057,7 +2084,7 @@ const VOCAB = [
     },
     antonyms:['安い','低い'],
     similar:[],
-    tags:['#形容詞','#日常'],
+    tags:['#形容詞','#日常','#口語'],
   },
   {
     id:18, kanji:'安い', hiragana:'やすい', romaji:'yasui', pitch:0,
@@ -2073,7 +2100,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['高い'],
     similar:[],
-    tags:['#形容詞','#買物'],
+    tags:['#形容詞','#買物','#口語'],
   },
   {
     id:19, kanji:'新しい', hiragana:'あたらしい', romaji:'atarashii', pitch:4,
@@ -2089,7 +2116,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['古い'],
     similar:[],
-    tags:['#形容詞','#日常'],
+    tags:['#形容詞','#日常','#口語'],
   },
   {
     id:20, kanji:'古い', hiragana:'ふるい', romaji:'furui', pitch:0,
@@ -2105,7 +2132,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['新しい'],
     similar:[],
-    tags:['#形容詞','#日常'],
+    tags:['#形容詞','#日常','#口語'],
   },
   {
     id:21, kanji:'熱い', hiragana:'あつい', romaji:'atsui', pitch:2,
@@ -2124,7 +2151,7 @@ const VOCAB = [
     },
     antonyms:['冷たい'],
     similar:['暑い'],
-    tags:['#形容詞','#ニュアンス'],
+    tags:['#形容詞','#ニュアンス','#口語'],
   },
   {
     id:22, kanji:'暑い', hiragana:'あつい', romaji:'atsui', pitch:2,
@@ -2143,7 +2170,7 @@ const VOCAB = [
     },
     antonyms:['涼しい','寒い'],
     similar:['熱い'],
-    tags:['#形容詞','#ニュアンス'],
+    tags:['#形容詞','#ニュアンス','#口語'],
   },
   {
     id:23, kanji:'きれい', hiragana:'きれい', romaji:'kirei', pitch:1,
@@ -2162,7 +2189,7 @@ const VOCAB = [
     },
     antonyms:['汚い'],
     similar:['便利'],
-    tags:['#形容詞','#日常'],
+    tags:['#形容詞','#日常','#口語'],
   },
   {
     id:24, kanji:'便利', hiragana:'べんり', romaji:'benri', pitch:1,
@@ -2178,7 +2205,7 @@ const VOCAB = [
     nuance:null,
     antonyms:['不便'],
     similar:[],
-    tags:['#形容詞','#生活'],
+    tags:['#形容詞','#生活','#商務'],
   },
   {
     id:25, kanji:'探す', hiragana:'さがす', romaji:'sagasu', pitch:0,
@@ -2198,7 +2225,7 @@ const VOCAB = [
     },
     antonyms:[],
     similar:['捜す'],
-    tags:['#日常','#ニュアンス'],
+    tags:['#日常','#ニュアンス','#口語'],
   },
   {
     id:26, kanji:'捜す', hiragana:'さがす', romaji:'sagasu', pitch:0,
@@ -2218,7 +2245,7 @@ const VOCAB = [
     },
     antonyms:[],
     similar:['探す'],
-    tags:['#日常','#ニュアンス'],
+    tags:['#日常','#ニュアンス','#新聞'],
   },
   {
     id:27, kanji:'時間', hiragana:'じかん', romaji:'jikan', pitch:0,
@@ -2234,7 +2261,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['毎日'],
-    tags:['#名詞','#日常'],
+    tags:['#名詞','#日常','#商務'],
   },
   {
     id:28, kanji:'毎日', hiragana:'まいにち', romaji:'mainichi', pitch:0,
@@ -2250,7 +2277,7 @@ const VOCAB = [
     nuance:null,
     antonyms:[],
     similar:['時間'],
-    tags:['#副詞','#日常'],
+    tags:['#副詞','#日常','#口語'],
   },
   {
     id:29, kanji:'少し', hiragana:'すこし', romaji:'sukoshi', pitch:0,
@@ -2269,7 +2296,7 @@ const VOCAB = [
     },
     antonyms:['たくさん'],
     similar:['とても'],
-    tags:['#副詞','#日常'],
+    tags:['#副詞','#日常','#新聞'],
   },
   {
     id:30, kanji:'とても', hiragana:'とても', romaji:'totemo', pitch:1,
@@ -2288,7 +2315,7 @@ const VOCAB = [
     },
     antonyms:['少し','あまり'],
     similar:['少し'],
-    tags:['#副詞','#日常'],
+    tags:['#副詞','#日常','#口語'],
   },
 ];
 
@@ -14467,6 +14494,7 @@ const state = {
   selectedLevels: [],          // populated on init or after welcome screen
   filter: { jlpt:'all', status:'all', pos:'all', search:'' },
   quiz: { words:[], current:0, score:0, answered:false },
+  quizMode: 'normal',          // 'normal' | 'listen' | 'cloze'
   fc: { words:[], current:0, flipped:false },
   vocabMode: 'curated',        // 'curated' | 'all'
   vocabPage: 0,
@@ -14852,6 +14880,20 @@ function handleAddToCurated(btn) {
 ═══════════════════════════════════════════ */
 const JLPT_COLORS = { N5:'#2980b9', N4:'#27ae60', N3:'#d4ac0d', N2:'#e67e22', N1:'#c0392b' };
 
+/* Register / "in the wild" tags → colour class. Topic tags (#日常 etc.) stay default blue. */
+const TAG_STYLE = {
+  '#anime':'t-anime', '#動畫':'t-anime',
+  '#manga':'t-manga', '#漫畫':'t-manga',
+  '#business':'t-biz', '#商務':'t-biz', '#ビジネス':'t-biz',
+  '#keigo':'t-keigo', '#敬語':'t-keigo',
+  '#news':'t-news', '#新聞':'t-news',
+  '#casual':'t-casual', '#口語':'t-casual',
+};
+function tagChip(t) {
+  const cls = t === '#自選' ? 'b-promoted' : (TAG_STYLE[t] || 'b-tag');
+  return `<span class="badge ${cls}">${t}</span>`;
+}
+
 /* ── Filter helpers ── */
 function setFilter(type, btn) {
   const val = btn.getAttribute('data-' + (type === 'status' ? 'st' : type));
@@ -15007,7 +15049,7 @@ function renderVocabCurated() {
       <div class="vc-meta">
         <span class="badge b-${w.jlpt.toLowerCase()}">${w.jlpt}</span>
         <span class="badge b-pos">${w.pos.split('（')[0]}</span>
-        ${w.tags.map(t=>`<span class="badge ${t==='#自選'?'b-promoted':'b-tag'}">${t}</span>`).join('')}
+        ${w.tags.map(tagChip).join('')}
       </div>
     </div>`;
   }).join('');
@@ -15256,7 +15298,7 @@ function openModal(id) {
           <div class="w-badges">
             <span class="badge b-${w.jlpt.toLowerCase()}">${w.jlpt}</span>
             <span class="badge b-pos">${w.pos}</span>
-            ${w.tags.map(t=>`<span class="badge b-tag">${t}</span>`).join('')}
+            ${w.tags.map(tagChip).join('')}
           </div>
           <div style="margin-top:14px;font-size:22px;font-weight:700;color:inherit">
             ${w.meanings.join(' ／ ')}
@@ -15908,11 +15950,25 @@ async function initQuiz() {
   const { cards, isNew, dateStr, seenCount, totalWords, cycle, cycleReset, dueCount, newCount } = await getDailyCards();
   const pool = [...cards].sort(() => Math.random() - 0.5);
   const quizWords = pool.slice(0, Math.min(10, pool.length));
+  const mode = state.quizMode || 'normal';
 
-  // Translate ALL pool cards BEFORE rendering — quiz options must be Chinese
-  await enrichCardsZh(pool);
+  if (mode === 'cloze') {
+    // Cloze options are words, not meanings — fetch one example sentence per word.
+    // Prefer a real Tatoeba sentence that contains the word; fall back to a template.
+    await Promise.all(quizWords.map(async w => {
+      let sent = null;
+      try {
+        const ex = await tatoebaExamples(w.word);
+        if (ex && ex[0] && ex[0].ja.includes(w.word)) sent = ex[0];
+      } catch(_) {}
+      w._sent = sent || autoExamples(w.word, w.reading, w.pos)[0];
+    }));
+  } else {
+    // 看字 / 聽力 options are Chinese meanings — translate the pool first.
+    await enrichCardsZh(pool);
+  }
 
-  state.quiz = { words: quizWords, pool, current: 0, score: 0, answered: false };
+  state.quiz = { words: quizWords, pool, current: 0, score: 0, answered: false, mode };
   renderDailyBanner('quiz-daily-banner', dateStr, cards.length, isNew, { seenCount, totalWords, cycle, cycleReset, dueCount, newCount });
   renderQuiz();
   startMidnightWatcher();
@@ -15946,6 +16002,45 @@ function renderQuiz() {
   const pct = Math.round((current / words.length) * 100);
 
   const safeCorrect = String(w.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  const mode = state.quiz.mode || 'normal';
+  const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+
+  // Prompt block varies by mode
+  let promptHTML;
+  if (mode === 'listen') {
+    promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
+      <button class="quiz-listen-btn" data-r="${escAttr(w.reading)}" onclick="speakJapanese(this.dataset.r)">🔊</button>
+      <div class="quiz-listen-hint">點擊重播 · 選出正確意思</div>
+    </div>`;
+  } else if (mode === 'cloze') {
+    const s = w._sent;
+    const blanked = s && s.ja
+      ? s.ja.split(w.word).join('<span class="cloze-blank">＿＿</span>')
+      : '（無例句）';
+    promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
+      <div class="cloze-sentence">${blanked}</div>
+      ${s && s.zh ? `<div class="cloze-zh">${s.zh}</div>` : ''}
+    </div>`;
+  } else {
+    promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
+      <div class="quiz-word">${w.word}</div>
+      <div class="quiz-reading">${w.reading}${w.jlpt ? '　<span class="badge b-' + w.jlpt.toLowerCase() + '">' + w.jlpt + '</span>' : ''}</div>
+    </div>`;
+  }
+
+  // Cloze options are the words themselves; other modes show Chinese meanings
+  const optsHTML = opts.map(o => {
+    const sid = String(o.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    let label;
+    if (mode === 'cloze') {
+      label = o.reading && o.reading !== o.word ? `${o.word}（${o.reading}）` : o.word;
+    } else {
+      const src = o.zhMeanings || o.meanings;
+      label = Array.isArray(src) ? src.slice(0, 2).join('・') : String(src);
+    }
+    return `<button class="quiz-opt" data-id="${sid}" onclick="quizAnswer(this)">${label}</button>`;
+  }).join('');
+
   wrap.innerHTML = `
     <div class="quiz-hd">
       <div>${current+1} / ${words.length}</div>
@@ -15954,19 +16049,18 @@ function renderQuiz() {
     <div class="fc-progress" style="margin-bottom:24px">
       <div class="fc-progress-bar" style="width:${pct}%"></div>
     </div>
-    <div class="quiz-q" data-correct="${safeCorrect}">
-      <div class="quiz-word">${w.word}</div>
-      <div class="quiz-reading">${w.reading}${w.jlpt ? '　<span class="badge b-' + w.jlpt.toLowerCase() + '">' + w.jlpt + '</span>' : ''}</div>
-    </div>
-    <div class="quiz-opts">
-      ${opts.map(o => {
-        const sid  = String(o.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-        const src  = o.zhMeanings || o.meanings;
-        const label = Array.isArray(src) ? src.slice(0, 2).join('・') : String(src);
-        return `<button class="quiz-opt" data-id="${sid}" onclick="quizAnswer(this)">${label}</button>`;
-      }).join('')}
-    </div>
+    ${promptHTML}
+    <div class="quiz-opts">${optsHTML}</div>
     <button class="quiz-next-btn" id="quiz-next" onclick="quizNext()">下一題 →</button>`;
+
+  if (mode === 'listen') speakJapanese(w.reading);   // auto-play
+}
+
+function setQuizMode(mode) {
+  state.quizMode = mode;
+  document.querySelectorAll('.qm-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.qmode === mode));
+  initQuiz();
 }
 
 function quizAnswer(btn) {
@@ -18034,3 +18128,6 @@ if ('serviceWorker' in navigator) {
     </div>
     <div id="trans-test-content" style="padding:28px"></div>
   </div>
+</div>
+</body>
+</html>
