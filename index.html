@@ -1621,7 +1621,7 @@
     washes.push({
       x: Math.random()*W, y: Math.random()*H,
       base: (150 + Math.random()*130) * dpr,
-      col: INKS[(Math.random()*3)|0], peak: 0.10,
+      col: INKS[(Math.random()*3)|0], peak: 0.17,
       lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
       phase: Math.random()*6.28, spd: (0.02 + Math.random()*0.02) * dpr,
     });
@@ -1636,7 +1636,7 @@
     drops.push({
       x: Math.random()*W, y: Math.random()*H, r: 4*dpr,
       max: (vermilion ? 65 : 120) * dpr * (0.6 + Math.random()*0.9),
-      peak: vermilion ? 0.16 : 0.12, life: 0, dur: 7000 + Math.random()*6000,
+      peak: vermilion ? 0.24 : 0.18, life: 0, dur: 7000 + Math.random()*6000,
       col, lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
       spd: (0.03 + Math.random()*0.03) * dpr,
     });
@@ -1646,6 +1646,26 @@
     const m = 300*dpr;
     if (o.x < -m) o.x = W+m; else if (o.x > W+m) o.x = -m;
     if (o.y < -m) o.y = H+m; else if (o.y > H+m) o.y = -m;
+  }
+
+  // ── Click ripples: ink bleeding into water on empty-space taps ──
+  const ripples = [];
+  function addRipple(px, py) {
+    const col   = Math.random() < 0.25 ? INKS[3] : INKS[(Math.random()*3)|0];
+    const lobes = 6 + ((Math.random()*4)|0);
+    ripples.push({
+      x: px, y: py, life: 0, dur: 1900 + Math.random()*700,
+      max: (170 + Math.random()*90) * dpr, peak: 0.30,
+      col, lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
+    });
+  }
+  if (!reduce) {
+    addEventListener('click', e => {
+      if (document.documentElement.getAttribute('data-theme') !== 'light') return;
+      // only on empty space — skip any interactive control
+      if (e.target.closest('button, a, input, textarea, select, label, [onclick]')) return;
+      addRipple(e.clientX * dpr, e.clientY * dpr);
+    });
   }
 
   let last = performance.now(), acc = 0;
@@ -1680,6 +1700,37 @@
       d.r = d.max * (1 - Math.pow(1 - Math.min(p*1.6, 1), 3));   // absorb fast, then slow
       const fade = p < 0.5 ? p/0.5 : 1 - (p-0.5)/0.5;
       blob(d.x, d.y, d.r, d.col, d.peak*fade, d.lobes, d.wobble, d.rot, 0.35, ang);
+    }
+
+    // click ripples — expanding ink ring + dispersing core
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const rp = ripples[i];
+      rp.life += dt;
+      const p = rp.life / rp.dur;
+      if (p >= 1) { ripples.splice(i, 1); continue; }
+      const r = rp.max * (1 - Math.pow(1 - p, 2));   // fast spread, easing out
+      const a = rp.peak * (1 - p);                   // fade as it disperses
+      ctx.save();
+      ctx.translate(rp.x, rp.y);
+      ctx.rotate(rp.rot);
+      const g = ctx.createRadialGradient(0, 0, r*0.5, 0, 0, r);
+      g.addColorStop(0,    `rgba(${rp.col[0]},${rp.col[1]},${rp.col[2]},0)`);
+      g.addColorStop(0.72, `rgba(${rp.col[0]},${rp.col[1]},${rp.col[2]},${a})`);
+      g.addColorStop(1,    `rgba(${rp.col[0]},${rp.col[1]},${rp.col[2]},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      const steps = 50;
+      for (let s = 0; s <= steps; s++) {
+        const t  = (s/steps) * Math.PI*2;
+        const w  = rp.wobble[s % rp.lobes];
+        const rr = r * (0.86 + 0.14*Math.sin(t*rp.lobes + rp.rot)) * w;
+        const px = Math.cos(t)*rr, py = Math.sin(t)*rr;
+        s ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      blob(rp.x, rp.y, r*0.42, rp.col, a*0.9, rp.lobes, rp.wobble, rp.rot, 0, 0);  // dispersing core
     }
 
     if (ctx.filter !== undefined) ctx.filter = 'none';
