@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -20,14 +20,17 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Shippori+Mincho:wght@500;600;700;800&display=swap');
 
     /* ═══════════════════════════════════════════
-       DESIGN SYSTEM — 暖夜 Warm & Gentle
+       DESIGN SYSTEM — 和紙 Washi (zen ink & paper)
+       Serif headings, vermilion seal accent, calm paper space.
+       Default = light (washi); dark kept as night mode.
     ═══════════════════════════════════════════ */
     :root {
-      --red: #c0634a; --red-light: #d97b60; --red-bg: rgba(192,99,74,.1);
-      --red-glow: rgba(192,99,74,.28);
+      /* Vermilion 朱色 seal accent (shared by both themes) */
+      --red: #c1432f; --red-light: #d6543d; --red-bg: rgba(193,67,47,.1);
+      --red-glow: rgba(193,67,47,.22);
       --navy: #1A110C; --navy-light: #261a14;
       --green: #7ec88a; --yellow: #e8b86d; --blue: #8aabcc;
       --bg: #1E1612; --card: rgba(255,240,220,.045); --border: rgba(255,220,180,.09);
@@ -36,8 +39,38 @@
       --glass: rgba(28,18,12,.82);
       --shadow-card: 0 4px 24px rgba(0,0,0,.4);
       --shadow-modal: 0 32px 80px rgba(0,0,0,.65), 0 0 0 1px rgba(255,220,180,.07);
-      --radius-card: 14px; --radius-modal: 20px;
+      --radius-card: 8px; --radius-modal: 12px;
+      --serif: 'Shippori Mincho','Yu Mincho','Hiragino Mincho ProN','Songti TC',serif;
       --transition: .2s ease;
+    }
+
+    /* Washi: serif (mincho) for the logo, headings & all large Japanese display text */
+    .logo, .app-name, .welcome-title,
+    .vc-kanji, .w-kanji, .fc-main, .fc-sub, .quiz-word, .quiz-reading,
+    .cloze-sentence, .quiz-listen-reading, .gc-pattern, .modal-hd-kanji {
+      font-family: var(--serif);
+    }
+    .logo { font-weight: 800 !important; letter-spacing: 0; }
+    .vc-kanji, .w-kanji, .fc-main, .quiz-word { font-weight: 700; }
+
+    /* ── Washi motion: ink-settle reveals, seal-press feedback ── */
+    @keyframes washiReveal { from { opacity: 0; transform: translateY(10px); }
+                             to   { opacity: 1; transform: none; } }
+    @keyframes washiInk    { from { opacity: 0; transform: translateY(6px) scale(.985); }
+                             to   { opacity: 1; transform: none; } }
+    .section.active { animation: washiReveal .5s cubic-bezier(.2,.7,.3,1); }
+    .modal, .pm-modal { animation: washiInk .35s cubic-bezier(.2,.7,.3,1); }
+    .vocab-card { transition: transform .25s ease, box-shadow .25s ease,
+                              background .25s ease, border-color .25s ease; }
+    /* seal-stamp press on interactive controls */
+    button:active, .nav-btn:active, .filter-btn:active, .fc-btn:active,
+    .fc-btn-mastered:active, .qm-btn:active, .qls-btn:active,
+    .quiz-opt:active, .vocab-card:active { transform: scale(.96); }
+    @media (prefers-reduced-motion: reduce) {
+      .section.active, .modal, .pm-modal { animation: none; }
+      button:active, .nav-btn:active, .filter-btn:active, .fc-btn:active,
+      .fc-btn-mastered:active, .qm-btn:active, .qls-btn:active,
+      .quiz-opt:active, .vocab-card:active { transform: none; }
     }
 
     /* ── Reset & Base ── */
@@ -293,7 +326,7 @@
     .vc-meta { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
 
     /* ── Badges ── */
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: .4px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .4px; }
     .b-n5 { background: rgba(68,138,255,.18);  color: #7eb3ff; }
     .b-n4 { background: rgba(0,230,118,.14);   color: #5ef5a0; }
     .b-n3 { background: rgba(255,215,64,.14);  color: #ffe060; }
@@ -308,6 +341,17 @@
     .t-keigo  { background: rgba(255,167,38,.15); color:#ffcc80; }
     .t-news   { background: rgba(120,144,156,.18); color:#b0bec5; }
     .t-casual { background: rgba(102,187,106,.15); color:#a5d6a7; }
+    /* ── Toast ── */
+    .jp-toast {
+      position: fixed; left: 50%; bottom: 80px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--navy-light); color: var(--text);
+      padding: 12px 22px; border-radius: 24px; font-size: 14px; font-weight: 600;
+      box-shadow: var(--shadow-modal); border: 1px solid var(--border);
+      opacity: 0; pointer-events: none; z-index: 2000;
+      transition: opacity .3s ease, transform .3s ease;
+    }
+    .jp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ── Modal ── */
     .modal-overlay {
@@ -531,14 +575,6 @@
     }
     .fc-speak-btn:hover  { opacity: 1; }
     .fc-speak-btn:active { transform: scale(.85); opacity: 1; }
-    /* ── Flashcard image (Unsplash) ── */
-    .fc-img-box   { display: none; margin-bottom: 2px; }
-    .fc-img-photo {
-      width: 120px; height: 90px; object-fit: cover;
-      border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.5);
-      transition: opacity .3s;
-    }
-    .flashcard.has-image { height: 370px; }
     .speak-btn {
       background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
       border-radius: 50%; cursor: pointer; color: rgba(255,255,255,.7);
@@ -548,13 +584,13 @@
     }
     .speak-btn:hover  { background: rgba(255,255,255,.18); color: #fff; }
     .speak-btn:active { transform: scale(.88); }
-    .fc-btn     { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all var(--transition); font-family: inherit; }
+    .fc-btn     { flex: 1; min-height: 52px; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all var(--transition); font-family: inherit; }
     .fc-btn-w   { background: rgba(229,57,53,.15); color: #ff8880; border: 1px solid rgba(229,57,53,.25); }
     .fc-btn-w:hover { background: var(--red); color: #fff; box-shadow: 0 4px 20px rgba(229,57,53,.5); }
     .fc-btn-c   { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.25); }
     .fc-btn-c:hover { background: var(--green); color: #000; box-shadow: 0 4px 20px rgba(0,230,118,.4); }
     /* 已精通 button (for 複習中 cards) — blue-teal to distinguish from 已記住 */
-    .fc-btn-mastered   { flex:1; padding:14px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; transition:all var(--transition); font-family:inherit; background:rgba(68,138,255,.15); color:var(--blue); border:1px solid rgba(68,138,255,.3); }
+    .fc-btn-mastered   { flex:1; min-height:52px; padding:14px; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; transition:all var(--transition); font-family:inherit; background:rgba(68,138,255,.15); color:var(--blue); border:1px solid rgba(68,138,255,.3); }
     .fc-btn-mastered:hover { background:var(--blue); color:#fff; box-shadow:0 4px 20px rgba(68,138,255,.5); }
     .fc-done       { text-align: center; padding: 40px 24px; }
     .fc-done h2    { font-size: 28px; margin-bottom: 12px; color: var(--text); }
@@ -586,6 +622,15 @@
                        font-size:52px; background:var(--red-bg); color:var(--red-light);
                        box-shadow:0 0 40px var(--red-glow); transition:transform var(--transition); }
     .quiz-listen-btn:hover { transform:scale(1.06); }
+    .quiz-listen-reading { font-size:24px; font-weight:700; color:var(--text); margin-top:16px;
+                           visibility:hidden; min-height:30px; letter-spacing:1px; }
+    .quiz-listen-reading.show { visibility:visible; }
+    .quiz-listen-speed { display:flex; gap:8px; justify-content:center; margin-top:14px; }
+    .qls-btn { padding:6px 16px; border:1.5px solid var(--border); border-radius:20px;
+               background:rgba(255,255,255,.04); color:var(--muted); cursor:pointer;
+               font-size:13px; font-weight:600; font-family:inherit; transition:all var(--transition); }
+    .qls-btn:hover { color:var(--text); border-color:rgba(229,57,53,.4); }
+    .qls-btn.active { color:var(--red-light); border-color:var(--red); background:rgba(229,57,53,.1); }
     .quiz-listen-hint { font-size:13px; color:var(--muted); margin-top:14px; }
     .cloze-sentence { font-size:26px; font-weight:700; line-height:1.6; color:var(--text); }
     .cloze-blank { display:inline-block; min-width:64px; border-bottom:3px solid var(--red-light);
@@ -1089,22 +1134,37 @@
        LIGHT THEME — all dark-specific overrides
     ═══════════════════════════════════════════ */
     [data-theme="light"] {
-      --bg: #FDF6EF;
-      --card: rgba(255,248,238,.88);
-      --border: rgba(160,100,60,.1);
-      --text: #3A2A1E;
-      --text-2: #6B5040;
-      --muted: #A08070;
-      --glass: rgba(253,246,239,.95);
-      --shadow-card: 0 4px 24px rgba(100,60,20,.09);
-      --shadow-modal: 0 32px 80px rgba(80,40,10,.16), 0 0 0 1px rgba(160,100,60,.1);
+      --bg: #F4EFE6;                          /* washi paper */
+      --card: rgba(251,248,241,.92);          /* lighter paper card */
+      --border: rgba(120,90,60,.16);          /* ink-brown hairline */
+      --text: #2B2420;                        /* sumi ink */
+      --text-2: #5C5044;
+      --muted: #9A8C78;
+      --glass: rgba(248,244,236,.96);
+      --shadow-card: 0 2px 14px rgba(120,90,60,.1);
+      --shadow-modal: 0 28px 70px rgba(80,50,20,.18), 0 0 0 1px rgba(120,90,60,.12);
     }
 
     [data-theme="light"] body {
+      /* 宣紙 Xuan paper: fractal-noise fibre grain + soft uneven mottle + seal-ink glow */
+      background-color: #F4EFE6;
       background-image:
-        radial-gradient(ellipse at 15% 0%,   rgba(192,99,74,.08) 0%, transparent 52%),
-        radial-gradient(ellipse at 85% 100%,  rgba(200,150,80,.05) 0%, transparent 52%);
+        radial-gradient(ellipse at 12% 0%,   rgba(193,67,47,.05) 0%, transparent 45%),
+        radial-gradient(ellipse at 88% 100%,  rgba(150,110,60,.05) 0%, transparent 45%),
+        radial-gradient(circle  at 28% 22%,   rgba(175,145,105,.10) 0%, transparent 24%),
+        radial-gradient(circle  at 72% 64%,   rgba(200,180,150,.10) 0%, transparent 28%),
+        radial-gradient(circle  at 48% 88%,   rgba(160,130,90,.07)  0%, transparent 30%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.5'/%3E%3C/svg%3E");
+      background-size: cover, cover, cover, cover, cover, 300px 300px;
+      background-attachment: fixed;
     }
+
+    /* ── Bleeding-ink background canvas: sumi drops blooming into the paper ── */
+    #ink-canvas {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      z-index: -1; pointer-events: none; opacity: .9;
+    }
+    [data-theme="dark"] #ink-canvas { display: none; }   /* washi-only effect */
 
     /* Scrollbar */
     [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); }
@@ -1178,14 +1238,14 @@
     [data-theme="light"] .filter-btn[data-pos="adv"].active     { color:#880e4f; }
     [data-theme="light"] .filter-btn[data-mode="curated"].active { color:#b45309; }
     [data-theme="light"] .filter-btn[data-mode="all"].active     { color:#00695c; }
-    [data-theme="light"] .vocab-card { background: rgba(255,255,255,.78); border-color: rgba(0,0,0,.08); }
-    [data-theme="light"] .vocab-card:hover { background: #fff; box-shadow: 0 8px 32px rgba(0,0,0,.12), 0 0 0 1px rgba(229,57,53,.15); }
+    [data-theme="light"] .vocab-card { background: rgba(251,248,241,.92); border-color: rgba(120,90,60,.14); }
+    [data-theme="light"] .vocab-card:hover { background: #fdfbf6; box-shadow: 0 8px 28px rgba(120,90,60,.16), 0 0 0 1px rgba(193,67,47,.18); }
 
     /* Modal (curated word) */
-    [data-theme="light"] .modal { background: #fff; border-color: rgba(0,0,0,.1); }
+    [data-theme="light"] .modal { background: #fbf8f1; border-color: rgba(120,90,60,.14); }
     [data-theme="light"] .modal-hd {
-      background: linear-gradient(135deg, rgba(229,57,53,.09) 0%, #f8f9fe 55%);
-      border-bottom-color: rgba(0,0,0,.08);
+      background: linear-gradient(135deg, rgba(193,67,47,.1) 0%, #f4efe6 55%);
+      border-bottom-color: rgba(120,90,60,.12);
       color: var(--text); /* reset from dark-mode #fff so all children inherit dark text */
     }
     [data-theme="light"] .modal-hd .w-kanji  { color: var(--text); }
@@ -1478,7 +1538,7 @@
     }
   </style>
   <!-- Early theme init: apply before first paint to prevent flash -->
-  <script>(function(){var t=localStorage.getItem('jp_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script>(function(){var t=localStorage.getItem('jp_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <!-- NHK pitch accent lookup (built by build_pitch_accent.py) -->
   <script src="pitch_accent.js"></script>
   <!-- Firebase SDK (compat / global-variable style — no bundler required) -->
@@ -1491,6 +1551,148 @@
   <script src="firebase-sync.js"></script>
 </head>
 <body>
+
+<!-- Bleeding-ink background: sumi drops bloom into the xuan paper, then fade -->
+<canvas id="ink-canvas" aria-hidden="true"></canvas>
+<script>
+(function inkFlow() {
+  const cv = document.getElementById('ink-canvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = cv.width  = Math.floor(innerWidth  * dpr);
+    H = cv.height = Math.floor(innerHeight * dpr);
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  // Sumi-ink palette (mostly ink-brown, occasional vermilion seal)
+  const INKS = [ [70,52,40], [55,42,34], [90,70,52], [193,67,47] ];
+
+  // Slow swirling current — gives the ink its flowing direction
+  function flowAngle(x, y, t) {
+    return Math.sin(x*0.0011 + t*0.00009) * 1.7
+         + Math.cos(y*0.0013 - t*0.00011) * 1.7;
+  }
+
+  // Draw a soft ink mass with a wavy (bleeding) outline, stretched along its flow
+  function blob(x, y, r, col, a, lobes, wobble, rot, stretch, ang) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.scale(1 + stretch, 1 / (1 + stretch*0.5));   // elongate along flow
+    const grad = ctx.createRadialGradient(0, 0, r*0.12, 0, 0, r);
+    grad.addColorStop(0,   `rgba(${col[0]},${col[1]},${col[2]},${a})`);
+    grad.addColorStop(0.6, `rgba(${col[0]},${col[1]},${col[2]},${a*0.45})`);
+    grad.addColorStop(1,   `rgba(${col[0]},${col[1]},${col[2]},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    const steps = 46;
+    for (let i = 0; i <= steps; i++) {
+      const t  = (i/steps) * Math.PI*2;
+      const w  = wobble[i % lobes];
+      const rr = r * (0.82 + 0.18*Math.sin(t*lobes + rot)) * w;
+      const px = Math.cos(t)*rr, py = Math.sin(t)*rr;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function makeWobble(lobes) {
+    const w = []; for (let i = 0; i < lobes; i++) w.push(0.72 + Math.random()*0.5); return w;
+  }
+
+  // ── Persistent flowing washes (the "flowing ink" — drift forever, never fade) ──
+  const washes = [];
+  for (let i = 0; i < 3; i++) {
+    const lobes = 5 + ((Math.random()*4)|0);
+    washes.push({
+      x: Math.random()*W, y: Math.random()*H,
+      base: (150 + Math.random()*130) * dpr,
+      col: INKS[(Math.random()*3)|0], peak: 0.10,
+      lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
+      phase: Math.random()*6.28, spd: (0.02 + Math.random()*0.02) * dpr,
+    });
+  }
+
+  // ── Transient bleeding drops (the "ink bleed" — bloom, linger, dry out) ──
+  const drops = [];
+  function spawn() {
+    const vermilion = Math.random() < 0.18;
+    const col   = vermilion ? INKS[3] : INKS[(Math.random()*3)|0];
+    const lobes = 5 + ((Math.random()*4)|0);
+    drops.push({
+      x: Math.random()*W, y: Math.random()*H, r: 4*dpr,
+      max: (vermilion ? 65 : 120) * dpr * (0.6 + Math.random()*0.9),
+      peak: vermilion ? 0.16 : 0.12, life: 0, dur: 7000 + Math.random()*6000,
+      col, lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
+      spd: (0.03 + Math.random()*0.03) * dpr,
+    });
+  }
+
+  function wrap(o) {
+    const m = 300*dpr;
+    if (o.x < -m) o.x = W+m; else if (o.x > W+m) o.x = -m;
+    if (o.y < -m) o.y = H+m; else if (o.y > H+m) o.y = -m;
+  }
+
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    if (document.hidden) { last = now; return requestAnimationFrame(frame); }
+    const dt = Math.min(now - last, 80); last = now;
+    ctx.clearRect(0, 0, W, H);
+    if (ctx.filter !== undefined) ctx.filter = 'blur(7px)';   // feathered bleed
+
+    // flowing washes
+    for (const w of washes) {
+      const ang = flowAngle(w.x, w.y, now);
+      w.x += Math.cos(ang) * w.spd * dt;
+      w.y += Math.sin(ang) * w.spd * dt;
+      wrap(w);
+      w.rot += 0.00004 * dt;
+      const r = w.base * (1 + 0.12*Math.sin(now*0.0002 + w.phase));
+      blob(w.x, w.y, r, w.col, w.peak, w.lobes, w.wobble, w.rot, 0.5, ang);
+    }
+
+    // bleeding drops
+    acc += dt;
+    if (acc > 1500 && drops.length < 7) { acc = 0; spawn(); }
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i];
+      d.life += dt;
+      const p = d.life / d.dur;
+      if (p >= 1) { drops.splice(i, 1); continue; }
+      const ang = flowAngle(d.x, d.y, now);
+      d.x += Math.cos(ang) * d.spd * dt;
+      d.y += Math.sin(ang) * d.spd * dt;
+      d.r = d.max * (1 - Math.pow(1 - Math.min(p*1.6, 1), 3));   // absorb fast, then slow
+      const fade = p < 0.5 ? p/0.5 : 1 - (p-0.5)/0.5;
+      blob(d.x, d.y, d.r, d.col, d.peak*fade, d.lobes, d.wobble, d.rot, 0.35, ang);
+    }
+
+    if (ctx.filter !== undefined) ctx.filter = 'none';
+    requestAnimationFrame(frame);
+  }
+
+  // Seed a few drops so the paper isn't empty on load
+  for (let i = 0; i < 3; i++) { spawn(); drops[i].life = Math.random()*4000; }
+
+  if (reduce) {
+    // Static composition only — no motion for reduced-motion users
+    if (ctx.filter !== undefined) ctx.filter = 'blur(7px)';
+    washes.forEach(w => blob(w.x, w.y, w.base, w.col, w.peak, w.lobes, w.wobble, w.rot, 0.4, 0));
+    drops.forEach(d => blob(d.x, d.y, d.max, d.col, d.peak, d.lobes, d.wobble, d.rot, 0.3, 0));
+  } else {
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
 
 <!-- ═══════════════════════════════════════════
      WELCOME / LEVEL-SELECTION SCREEN
@@ -1624,7 +1826,7 @@
         <button class="filter-btn" data-mode="all" id="vm-all" onclick="setVocabMode('all',this)">🌐 全部辭書 <span id="vm-all-count"></span></button>
         <button class="filter-btn manage-promoted-btn" id="manage-promoted-btn" onclick="openPromotedManager()" title="管理自選單字">✏️ 管理 <span id="manage-promoted-count"></span></button>
         <span id="vocab-load-msg" style="font-size:11px;color:var(--muted)"></span>
-        <button class="filter-btn filter-btn-dev" style="border-color:#27ae60;color:#27ae60" onclick="showTranslationTest()">🔍 翻譯驗證</button>
+        <button class="filter-btn filter-btn-dev" style="border-color:#27ae60;color:#27ae60;display:none" onclick="showTranslationTest()">🔍 翻譯驗證</button>
       </div>
 
       <!-- Row 2 — Search -->
@@ -14495,6 +14697,7 @@ const state = {
   filter: { jlpt:'all', status:'all', pos:'all', search:'' },
   quiz: { words:[], current:0, score:0, answered:false },
   quizMode: 'normal',          // 'normal' | 'listen' | 'cloze'
+  listenRate: 0.85,            // TTS speed for listen mode (0.6 = slow)
   fc: { words:[], current:0, flipped:false },
   vocabMode: 'curated',        // 'curated' | 'all'
   vocabPage: 0,
@@ -14858,6 +15061,21 @@ function curatedBtnHTML(kanji, reading, jlpt, posCode, defs) {
     onclick="handleAddToCurated(this)">⭐ 加入單字帳</button>`;
 }
 
+// Brief bottom-centre toast. Reuses one element; auto-hides after 1.5s.
+function showToast(msg) {
+  let t = document.getElementById('jp-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'jp-toast';
+    t.className = 'jp-toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
 function handleAddToCurated(btn) {
   let payload;
   try { payload = JSON.parse(btn.dataset.promote); } catch(e) { return; }
@@ -14866,6 +15084,7 @@ function handleAddToCurated(btn) {
   if (ok) {
     btn.disabled = true;
     btn.textContent = '✓ 已加入單字帳';
+    showToast('已加入精選 ✓');
     // Flash the vocab nav tab briefly
     const chip = document.querySelector('[data-sec="vocab"]');
     if (chip) { chip.style.background = 'rgba(255,215,64,.25)'; setTimeout(() => chip.style.background = '', 1200); }
@@ -15049,7 +15268,7 @@ function renderVocabCurated() {
       <div class="vc-meta">
         <span class="badge b-${w.jlpt.toLowerCase()}">${w.jlpt}</span>
         <span class="badge b-pos">${w.pos.split('（')[0]}</span>
-        ${w.tags.map(tagChip).join('')}
+        ${w.tags.filter(t => t === '#自選' || TAG_STYLE[t]).map(tagChip).join('')}
       </div>
     </div>`;
   }).join('');
@@ -15796,7 +16015,6 @@ function renderFlashcard() {
     <div class="flashcard" id="fc-card" onclick="flipCard()">
       <div class="fc-inner">
         <div class="fc-face fc-front">
-          <div id="fc-img" class="fc-img-box"></div>
           <div class="fc-main">${w.word}</div>
           <div class="fc-sub">${w.reading}</div>
           <button class="fc-speak-btn" title="播放發音"
@@ -15818,8 +16036,6 @@ function renderFlashcard() {
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">翻轉後選擇熟悉程度</div>`;
   state.fc.flipped = false;
-  // Async: fetch & inject Unsplash image (no-op if key not set or word isn't a noun)
-  loadCardImage(w).catch(() => {});
 }
 
 /** Load a fresh batch of dict words the user hasn't seen yet today */
@@ -15930,6 +16146,7 @@ function fcAnswer(correct) {
   }
 
   setWD(w.id, { srsLevel: newLevel, status: newStatus, nextReview });
+  hapticAnswer(correct);
   logActivity();
   updateStats(correct);
   if (window.FB && window.FB.logAnswerRecord) {
@@ -15937,6 +16154,11 @@ function fcAnswer(correct) {
   }
   state.fc.current++;
   renderFlashcard();
+}
+
+// Light haptic buzz on answer (no-op where unsupported, e.g. desktop/iOS Safari)
+function hapticAnswer(correct) {
+  if (navigator.vibrate) navigator.vibrate(correct ? 40 : [60, 40, 60]);
 }
 
 /* ═══════════════════════════════════════════
@@ -15953,16 +16175,10 @@ async function initQuiz() {
   const mode = state.quizMode || 'normal';
 
   if (mode === 'cloze') {
-    // Cloze options are words, not meanings — fetch one example sentence per word.
-    // Prefer a real Tatoeba sentence that contains the word; fall back to a template.
-    await Promise.all(quizWords.map(async w => {
-      let sent = null;
-      try {
-        const ex = await tatoebaExamples(w.word);
-        if (ex && ex[0] && ex[0].ja.includes(w.word)) sent = ex[0];
-      } catch(_) {}
-      w._sent = sent || autoExamples(w.word, w.reading, w.pos)[0];
-    }));
+    // Only the first sentence blocks render; the rest stream in the background
+    // and are ready by the time the user reaches them.
+    if (quizWords[0]) await loadClozeSentence(quizWords[0]);
+    Promise.all(quizWords.slice(1).map(loadClozeSentence)).catch(() => {});
   } else {
     // 看字 / 聽力 options are Chinese meanings — translate the pool first.
     await enrichCardsZh(pool);
@@ -15972,6 +16188,18 @@ async function initQuiz() {
   renderDailyBanner('quiz-daily-banner', dateStr, cards.length, isNew, { seenCount, totalWords, cycle, cycleReset, dueCount, newCount });
   renderQuiz();
   startMidnightWatcher();
+}
+
+// Fetch one cloze example sentence for a word (Tatoeba, template fallback). Cached on w._sent.
+async function loadClozeSentence(w) {
+  if (w._sent !== undefined) return w._sent;
+  let sent = null;
+  try {
+    const ex = await tatoebaExamples(w.word);
+    if (ex && ex[0] && ex[0].ja.includes(w.word)) sent = ex[0];
+  } catch(_) {}
+  w._sent = sent || autoExamples(w.word, w.reading, w.pos)[0];
+  return w._sent;
 }
 
 function renderQuiz() {
@@ -15985,10 +16213,12 @@ function renderQuiz() {
     if (window.FB && window.FB.logQuizSession) {
       window.FB.logQuizSession(score, words.length);
     }
+    const wrongCount = (state.quiz.wrong || []).length;
     wrap.innerHTML = `<div class="quiz-result">
       <div style="font-size:64px">${emoji}</div>
       <div class="result-score">${score} / ${words.length}</div>
       <div class="result-lbl">正確率 ${pct}%</div>
+      ${wrongCount ? `<button class="restart-btn" style="background:rgba(229,57,53,.15);color:var(--red-light);border:1px solid rgba(229,57,53,.3)" onclick="startQuizWrong()">只練錯的（${wrongCount}題）</button>` : ''}
       <button class="restart-btn" onclick="initQuiz()">再來一次</button>
     </div>`;
     return;
@@ -16008,19 +16238,36 @@ function renderQuiz() {
   // Prompt block varies by mode
   let promptHTML;
   if (mode === 'listen') {
+    const rate = state.listenRate || 0.85;
     promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
-      <button class="quiz-listen-btn" data-r="${escAttr(w.reading)}" onclick="speakJapanese(this.dataset.r)">🔊</button>
-      <div class="quiz-listen-hint">點擊重播 · 選出正確意思</div>
+      <button class="quiz-listen-btn" data-r="${escAttr(w.reading)}" onclick="replayListen(this)">🔊</button>
+      <div class="quiz-listen-reading" id="listen-reading">${w.reading}</div>
+      <div class="quiz-listen-speed">
+        <button class="qls-btn${rate<=0.7?' active':''}" data-rate="0.6"  onclick="setListenRate(0.6)">🐢 慢速</button>
+        <button class="qls-btn${rate>0.7 ?' active':''}" data-rate="0.85" onclick="setListenRate(0.85)">標準</button>
+      </div>
+      <div class="quiz-listen-hint">點擊喇叭重播（顯示讀音）· 選出正確意思</div>
     </div>`;
   } else if (mode === 'cloze') {
-    const s = w._sent;
-    const blanked = s && s.ja
-      ? s.ja.split(w.word).join('<span class="cloze-blank">＿＿</span>')
-      : '（無例句）';
-    promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
-      <div class="cloze-sentence">${blanked}</div>
-      ${s && s.zh ? `<div class="cloze-zh">${s.zh}</div>` : ''}
-    </div>`;
+    if (w._sent === undefined) {
+      // Sentence still streaming — show a loader and re-render when it lands
+      loadClozeSentence(w).then(() => {
+        if (state.quiz.mode === 'cloze' && !state.quiz.answered &&
+            state.quiz.words[state.quiz.current] === w) renderQuiz();
+      });
+      promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
+        <div class="cloze-sentence">⏳ 載入例句中…</div>
+      </div>`;
+    } else {
+      const s = w._sent;
+      const blanked = s && s.ja
+        ? s.ja.split(w.word).join('<span class="cloze-blank">＿＿</span>')
+        : '（無例句）';
+      promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
+        <div class="cloze-sentence">${blanked}</div>
+        ${s && s.zh ? `<div class="cloze-zh">${s.zh}</div>` : ''}
+      </div>`;
+    }
   } else {
     promptHTML = `<div class="quiz-q" data-correct="${safeCorrect}">
       <div class="quiz-word">${w.word}</div>
@@ -16053,7 +16300,7 @@ function renderQuiz() {
     <div class="quiz-opts">${optsHTML}</div>
     <button class="quiz-next-btn" id="quiz-next" onclick="quizNext()">下一題 →</button>`;
 
-  if (mode === 'listen') speakJapanese(w.reading);   // auto-play
+  if (mode === 'listen') speakJapanese(w.reading, state.listenRate || 0.85);   // auto-play
 }
 
 function setQuizMode(mode) {
@@ -16061,6 +16308,22 @@ function setQuizMode(mode) {
   document.querySelectorAll('.qm-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.qmode === mode));
   initQuiz();
+}
+
+// Replay the reading and reveal the hiragana/katakana (listen mode)
+function replayListen(btn) {
+  speakJapanese(btn.dataset.r, state.listenRate || 0.85);
+  const rd = document.getElementById('listen-reading');
+  if (rd) rd.classList.add('show');
+}
+
+// Switch listen-mode TTS speed and replay at the new speed
+function setListenRate(rate) {
+  state.listenRate = rate;
+  document.querySelectorAll('.qls-btn').forEach(b =>
+    b.classList.toggle('active', Number(b.dataset.rate) === rate));
+  const w = state.quiz.words[state.quiz.current];
+  if (w) speakJapanese(w.reading, rate);
 }
 
 function quizAnswer(btn) {
@@ -16076,6 +16339,13 @@ function quizAnswer(btn) {
     if (b.dataset.id === correct) b.classList.add('correct');
   });
   if (!isCorrect) btn.classList.add('wrong');
+  hapticAnswer(isCorrect);
+
+  // Remember wrong words so the result screen can offer a "只練錯的" retry
+  if (!isCorrect) {
+    const cur = state.quiz.words[state.quiz.current];
+    (state.quiz.wrong = state.quiz.wrong || []).push(cur);
+  }
 
   // Update SRS using the word's id key
   const wd = getWD(correct);
@@ -16100,135 +16370,47 @@ function quizNext() {
   renderQuiz();
 }
 
+// Re-quiz only the words missed this round. Word objects already carry their
+// translations / cloze sentences from the first pass, so no re-fetch needed.
+function startQuizWrong() {
+  const wrong = (state.quiz.wrong || []).slice();
+  if (!wrong.length) return;
+  state.quiz = { words: wrong, pool: state.quiz.pool, current: 0, score: 0,
+                 answered: false, mode: state.quiz.mode, wrong: [] };
+  renderQuiz();
+}
+
 /* ═══════════════════════════════════════════
    VOICE / TTS
 ═══════════════════════════════════════════ */
-function speakJapanese(text) {
+// Pick the clearest available Japanese voice. Neural/online voices
+// (Edge "Nanami/Keita Online (Natural)", Chrome "Google 日本語", Apple Siri/Kyoko)
+// sound far better than the legacy local SAPI voices — prefer them when present.
+let _jaVoice = null;
+function pickJaVoice() {
+  if (!window.speechSynthesis) return null;
+  const voices = speechSynthesis.getVoices();
+  const ja = voices.filter(v => /^ja\b|ja[-_]JP/i.test(v.lang) || /japanese|日本語/i.test(v.name));
+  if (!ja.length) return null;
+  const prefer = [/natural/i, /online/i, /neural/i, /siri/i, /kyoko/i, /o-?ren/i,
+                  /otoya/i, /google/i, /nanami/i, /keita/i, /ayumi/i, /haruka/i, /sayaka/i];
+  for (const re of prefer) { const hit = ja.find(v => re.test(v.name)); if (hit) return hit; }
+  return ja[0];
+}
+if (window.speechSynthesis) {
+  _jaVoice = pickJaVoice();
+  speechSynthesis.onvoiceschanged = () => { _jaVoice = pickJaVoice(); };
+}
+
+function speakJapanese(text, rate) {
   if (!window.speechSynthesis || !text) return;
   window.speechSynthesis.cancel();          // stop any ongoing speech
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang   = 'ja-JP';
-  utter.rate   = 0.8;   // slightly slower than native (1.0 = normal)
+  utter.rate   = rate || 0.85;
   utter.volume = 1.0;   // max volume
+  if (_jaVoice) utter.voice = _jaVoice;
   window.speechSynthesis.speak(utter);
-}
-
-/* ═══════════════════════════════════════════
-   UNSPLASH IMAGE — flashcard front pictures
-   Only shown for concrete nouns; cached in
-   localStorage so each term is fetched once.
-═══════════════════════════════════════════ */
-const UNSPLASH_ACCESS_KEY = 'PASTE_YOUR_UNSPLASH_ACCESS_KEY_HERE';
-const IMG_CACHE_KEY  = 'jp_img_cache';
-const IMG_CACHE_MAX  = 300;    // evict oldest when limit reached
-
-function getImgCache() {
-  try { return JSON.parse(localStorage.getItem(IMG_CACHE_KEY) || '{}'); }
-  catch(_) { return {}; }
-}
-function setImgCache(term, url) {
-  const cache = getImgCache();
-  const keys = Object.keys(cache);
-  if (keys.length >= IMG_CACHE_MAX) {
-    // Evict oldest 50 entries to make room
-    keys.slice(0, 50).forEach(k => delete cache[k]);
-  }
-  cache[term] = url;
-  try { localStorage.setItem(IMG_CACHE_KEY, JSON.stringify(cache)); } catch(_) {}
-}
-
-/** True only for concrete noun words that are likely to have good photos. */
-function isNounForImage(w) {
-  if (w.posCode === 'noun') return true;
-  if (w.pos && (w.pos.includes('名詞') || w.pos.toLowerCase().includes('noun'))) return true;
-  return false;
-}
-
-/**
- * Extract an English keyword for the Unsplash search.
- * Prefers the first ASCII meaning string; falls back to romaji.
- */
-function getImageSearchTerm(w) {
-  // VOCAB curated words: meanings array may contain English strings
-  const raw = w.meanings;
-  if (Array.isArray(raw)) {
-    for (const m of raw) {
-      if (typeof m === 'string' && /^[\x00-\x7F]+$/.test(m) && m.trim().length > 1) {
-        // Strip parenthetical notes, take first clause
-        const clean = m.replace(/\s*\(.*?\)\s*/g, '').split(/[;,]/)[0].trim();
-        if (clean.length > 1) return clean;
-      }
-    }
-  }
-  // Dict words: look up JMdict definition
-  if (w.source === 'dict' && dictState.data && dictState.data[w.word]) {
-    const d = dictState.data[w.word].d;
-    if (Array.isArray(d) && d.length > 0) {
-      const first = String(d[0]).split(/[;,]/)[0].trim();
-      if (first.length > 1 && /^[\x00-\x7F]+$/.test(first)) return first;
-    }
-  }
-  // Final fallback: romaji
-  return w.romaji || w.word;
-}
-
-/**
- * Fetches a photo URL for word w from Unsplash (with localStorage cache).
- * Returns null if: key not set, word is not a noun, or fetch fails.
- */
-async function fetchWordImage(w) {
-  if (!UNSPLASH_ACCESS_KEY || UNSPLASH_ACCESS_KEY.startsWith('PASTE_')) return null;
-  if (!isNounForImage(w)) return null;
-
-  const term = getImageSearchTerm(w);
-  if (!term) return null;
-
-  // Cache hit
-  const cache = getImgCache();
-  if (cache[term] !== undefined) return cache[term] || null; // null = known miss
-
-  try {
-    const res = await fetch(
-      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(term)}&orientation=squarish&content_filter=high`,
-      { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
-    );
-    if (!res.ok) { setImgCache(term, ''); return null; }  // cache miss to avoid retries
-    const photo = await res.json();
-    const url = photo?.urls?.small || photo?.urls?.thumb || '';
-    setImgCache(term, url);
-    return url || null;
-  } catch(_) {
-    return null;
-  }
-}
-
-/**
- * After renderFlashcard() creates the DOM, asynchronously load an image
- * and inject it into #fc-img.  Silently does nothing if not a noun or no key.
- */
-async function loadCardImage(w) {
-  const url = await fetchWordImage(w);
-  if (!url) return;
-
-  // Guard: make sure the card is still showing the same word
-  const box = document.getElementById('fc-img');
-  if (!box) return;
-
-  const img = document.createElement('img');
-  img.src       = url;
-  img.alt       = w.word;
-  img.className = 'fc-img-photo';
-  img.onload = () => {
-    // Double-check the placeholder is still in the DOM (user hasn't moved on)
-    if (!document.getElementById('fc-img')) return;
-    box.innerHTML = '';
-    box.appendChild(img);
-    box.style.display = 'block';
-    // Expand card height to fit image
-    const card = document.getElementById('fc-card');
-    if (card) card.classList.add('has-image');
-  };
-  img.onerror = () => {};  // silently ignore broken images
 }
 
 /* ═══════════════════════════════════════════
@@ -16520,8 +16702,8 @@ document.addEventListener('keydown', e => {
   }
   if (state.section === 'flashcard') {
     if (e.key === ' ') { e.preventDefault(); flipCard(); }
-    if (e.key === 'ArrowLeft') fcAnswer(false);
-    if (e.key === 'ArrowRight') fcAnswer(true);
+    if (e.key === 'ArrowLeft'  && state.fc.flipped) fcAnswer(false);
+    if (e.key === 'ArrowRight' && state.fc.flipped) fcAnswer(true);
   }
   if (state.section === 'quiz' && state.quiz.answered && e.key === 'Enter') quizNext();
 });
@@ -17893,6 +18075,12 @@ function syncLevelFilters() {
     renderVocab();
   }
   // else: welcome screen stays visible (default state)
+
+  // Dev tools: reveal 翻譯驗證 button only when localStorage.jp_dev === '1'
+  if (localStorage.getItem('jp_dev') === '1') {
+    const devBtn = document.querySelector('.filter-btn-dev');
+    if (devBtn) devBtn.style.display = '';
+  }
 })();
 
 /* ═══════════════════════════════════════════
