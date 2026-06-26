@@ -1145,8 +1145,9 @@
       --shadow-modal: 0 28px 70px rgba(80,50,20,.18), 0 0 0 1px rgba(120,90,60,.12);
     }
 
-    [data-theme="light"] body {
-      /* 宣紙 Xuan paper: fractal-noise fibre grain + soft uneven mottle + seal-ink glow */
+    /* 宣紙 Xuan paper lives on the ROOT so the ink canvas (z-index:-1) layers
+       above it; body is transparent so the ink shows through behind content. */
+    html[data-theme="light"] {
       background-color: #F4EFE6;
       background-image:
         radial-gradient(ellipse at 12% 0%,   rgba(193,67,47,.05) 0%, transparent 45%),
@@ -1158,12 +1159,17 @@
       background-size: cover, cover, cover, cover, cover, 300px 300px;
       background-attachment: fixed;
     }
+    [data-theme="light"] body { background: transparent; }
 
-    /* ── Bleeding-ink background canvas: sumi drops blooming into the paper ── */
+    /* ── Flowing/bleeding ink canvas: sits above the paper root, behind content ── */
     #ink-canvas {
       position: fixed; inset: 0; width: 100%; height: 100%;
-      z-index: -1; pointer-events: none; opacity: .9;
+      z-index: 0; pointer-events: none;
     }
+    [data-theme="light"] #app,
+    [data-theme="light"] #welcome-screen,
+    [data-theme="light"] header,
+    [data-theme="light"] nav { position: relative; z-index: 1; }
     [data-theme="dark"] #ink-canvas { display: none; }   /* washi-only effect */
 
     /* Scrollbar */
