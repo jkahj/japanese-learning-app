@@ -860,23 +860,26 @@
     ═══════════════════════════════════════════ */
     .dict-modal-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+      background: rgba(4,12,22,.82); backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       z-index: 1100; align-items: center; justify-content: center; padding: 16px;
     }
     .dict-modal-overlay.open { display: flex; }
     .dict-modal {
-      background: #0d1428; border-radius: var(--radius-modal);
-      border: 1px solid rgba(255,255,255,.1);
+      background: #060e18; border-radius: var(--radius-modal);
+      border: 1px solid rgba(25,85,108,.35);
       max-width: 480px; width: 100%;
       max-height: 88vh; overflow-y: auto;
       box-shadow: var(--shadow-modal);
     }
     .dict-modal-hd {
-      background: linear-gradient(135deg, rgba(192,99,74,.18) 0%, #1e1410 55%);
+      background:
+        radial-gradient(ellipse at 28% 65%, rgba(15,68,92,.55) 0%, transparent 62%),
+        repeating-linear-gradient(90deg, rgba(180,130,40,.10) 0 1px, transparent 1px 92px),
+        linear-gradient(160deg, #0c1e2e 0%, #071220 100%);
       color: #fff; padding: 24px 28px; position: sticky; top: 0;
       border-radius: var(--radius-modal) var(--radius-modal) 0 0;
-      border-bottom: 1px solid rgba(255,255,255,.08);
+      border-bottom: 1px solid rgba(25,85,108,.28);
     }
     .dict-modal-close {
       position: absolute; top: 16px; right: 16px;
