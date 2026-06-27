@@ -1134,34 +1134,46 @@
        LIGHT THEME — all dark-specific overrides
     ═══════════════════════════════════════════ */
     [data-theme="light"] {
-      --bg: #F4EFE6;                          /* washi paper */
-      --card: rgba(251,248,241,.92);          /* lighter paper card */
-      --border: rgba(120,90,60,.16);          /* ink-brown hairline */
-      --text: #2B2420;                        /* sumi ink */
-      --text-2: #5C5044;
-      --muted: #9A8C78;
-      --glass: rgba(248,244,236,.96);
-      --shadow-card: 0 2px 14px rgba(120,90,60,.1);
-      --shadow-modal: 0 28px 70px rgba(80,50,20,.18), 0 0 0 1px rgba(120,90,60,.12);
+      --bg: #DCEEF0;                          /* clear lake water */
+      --card: rgba(252,254,255,.74);          /* water-glass card */
+      --border: rgba(40,95,105,.18);          /* deep-teal hairline */
+      --text: #14323A;                        /* lake-bottom ink */
+      --text-2: #3D5C63;
+      --muted: #6E8A90;
+      --glass: rgba(232,247,249,.9);
+      --shadow-card: 0 4px 18px rgba(30,80,95,.13);
+      --shadow-modal: 0 28px 70px rgba(20,60,75,.22), 0 0 0 1px rgba(40,95,105,.12);
     }
 
-    /* 宣紙 Xuan paper lives on the ROOT so the ink canvas (z-index:-1) layers
-       above it; body is transparent so the ink shows through behind content. */
+    /* 澄んだ湖 Crystal-clear lake water on the ROOT; the canvas (ink + lotus +
+       caustics) layers above it, body transparent so it shows behind content. */
     html[data-theme="light"] {
-      background-color: #F4EFE6;
+      background-color: #DCEEF0;
       background-image:
-        radial-gradient(ellipse at 12% 0%,   rgba(193,67,47,.05) 0%, transparent 45%),
-        radial-gradient(ellipse at 88% 100%,  rgba(150,110,60,.05) 0%, transparent 45%),
-        radial-gradient(circle  at 28% 22%,   rgba(175,145,105,.10) 0%, transparent 24%),
-        radial-gradient(circle  at 72% 64%,   rgba(200,180,150,.10) 0%, transparent 28%),
-        radial-gradient(circle  at 48% 88%,   rgba(160,130,90,.07)  0%, transparent 30%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.5'/%3E%3C/svg%3E");
-      background-size: cover, cover, cover, cover, cover, 300px 300px;
+        radial-gradient(ellipse at 28% -5%,  rgba(176,222,224,.70) 0%, transparent 55%),
+        radial-gradient(ellipse at 82% 105%, rgba(96,168,186,.45) 0%, transparent 55%),
+        radial-gradient(ellipse at 95% 10%,  rgba(150,210,200,.40) 0%, transparent 45%),
+        linear-gradient(170deg, #e9f7f6 0%, #cfe9ec 45%, #b3dbe2 100%);
       background-attachment: fixed;
+    }
+    /* slow caustic shimmer drifting across the water */
+    html[data-theme="light"]::before {
+      content: ''; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.22) 0%, transparent 9%),
+        radial-gradient(circle at 65% 55%, rgba(255,255,255,.16) 0%, transparent 8%),
+        radial-gradient(circle at 40% 80%, rgba(255,255,255,.18) 0%, transparent 10%),
+        radial-gradient(circle at 85% 25%, rgba(255,255,255,.14) 0%, transparent 7%);
+      background-size: 55% 55%;
+      animation: caustics 24s ease-in-out infinite alternate;
+    }
+    @keyframes caustics {
+      0%   { transform: translate(0,0) scale(1); opacity:.7; }
+      100% { transform: translate(4%,3%) scale(1.12); opacity:1; }
     }
     [data-theme="light"] body { background: transparent; }
 
-    /* ── Flowing/bleeding ink canvas: sits above the paper root, behind content ── */
+    /* ── Lake canvas (ink, ripples, drifting lotus leaves): above water, below content ── */
     #ink-canvas {
       position: fixed; inset: 0; width: 100%; height: 100%;
       z-index: 0; pointer-events: none;
@@ -1170,18 +1182,24 @@
     [data-theme="light"] #welcome-screen,
     [data-theme="light"] header,
     [data-theme="light"] nav { position: relative; z-index: 1; }
-    [data-theme="dark"] #ink-canvas { display: none; }   /* washi-only effect */
+    [data-theme="dark"] #ink-canvas { display: none; }   /* lake effect is light-only */
+    @media (prefers-reduced-motion: reduce) { html[data-theme="light"]::before { animation: none; } }
 
     /* Scrollbar */
     [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); }
     [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.3); }
 
     /* Header */
+    /* 屏風 byōbu: gold folding-screen header with vertical fold panels */
     [data-theme="light"] header {
-      background: rgba(253,246,239,.95);
-      border-bottom-color: rgba(160,100,60,.08);
-      box-shadow: 0 1px 0 rgba(255,255,255,.9), 0 4px 24px rgba(0,0,0,.08);
+      background:
+        repeating-linear-gradient(90deg, rgba(120,92,30,.12) 0 1px, transparent 1px 92px),
+        linear-gradient(180deg, #f6edcf 0%, #ecdcab 100%);
+      border-bottom: 2px solid rgba(150,110,40,.34);
+      box-shadow: inset 0 -6px 14px rgba(150,110,40,.10), 0 4px 24px rgba(20,60,75,.12);
     }
+    [data-theme="light"] header .logo { color: var(--red); text-shadow: none; }
+    [data-theme="light"] header .app-name { color: #4a3a18; }
     [data-theme="light"] .app-name { color: var(--text); }
     [data-theme="light"] .app-sub  { color: rgba(0,0,0,.38); }
     [data-theme="light"] .theme-toggle-btn {
@@ -1203,7 +1221,7 @@
     [data-theme="light"] .fb-sync-btn:hover { background: rgba(0,0,0,.1); border-color: rgba(0,0,0,.2); }
 
     /* Nav */
-    [data-theme="light"] nav { background: rgba(248,238,226,.93); border-bottom-color: rgba(160,100,60,.08); }
+    [data-theme="light"] nav { background: rgba(228,244,246,.82); border-bottom-color: rgba(40,95,105,.14); }
 
     /* Inputs */
     [data-theme="light"] .search-box,
@@ -1244,14 +1262,14 @@
     [data-theme="light"] .filter-btn[data-pos="adv"].active     { color:#880e4f; }
     [data-theme="light"] .filter-btn[data-mode="curated"].active { color:#b45309; }
     [data-theme="light"] .filter-btn[data-mode="all"].active     { color:#00695c; }
-    [data-theme="light"] .vocab-card { background: rgba(251,248,241,.92); border-color: rgba(120,90,60,.14); }
-    [data-theme="light"] .vocab-card:hover { background: #fdfbf6; box-shadow: 0 8px 28px rgba(120,90,60,.16), 0 0 0 1px rgba(193,67,47,.18); }
+    [data-theme="light"] .vocab-card { background: rgba(252,254,255,.72); border-color: rgba(40,95,105,.16); }
+    [data-theme="light"] .vocab-card:hover { background: rgba(255,255,255,.92); box-shadow: 0 8px 28px rgba(30,80,95,.18), 0 0 0 1px rgba(193,67,47,.18); }
 
-    /* Modal (curated word) */
-    [data-theme="light"] .modal { background: #fbf8f1; border-color: rgba(120,90,60,.14); }
+    /* Modal (curated word) — water glass */
+    [data-theme="light"] .modal { background: #f3fafb; border-color: rgba(40,95,105,.16); }
     [data-theme="light"] .modal-hd {
-      background: linear-gradient(135deg, rgba(193,67,47,.1) 0%, #f4efe6 55%);
-      border-bottom-color: rgba(120,90,60,.12);
+      background: linear-gradient(135deg, rgba(193,67,47,.1) 0%, #dcecee 55%);
+      border-bottom-color: rgba(40,95,105,.14);
       color: var(--text); /* reset from dark-mode #fff so all children inherit dark text */
     }
     [data-theme="light"] .modal-hd .w-kanji  { color: var(--text); }
@@ -1576,8 +1594,8 @@
   resize();
   addEventListener('resize', resize);
 
-  // Sumi-ink palette (mostly ink-brown, occasional vermilion seal)
-  const INKS = [ [70,52,40], [55,42,34], [90,70,52], [193,67,47] ];
+  // Sumi-ink palette — dark black ink, deep lake-blue, occasional vermilion seal
+  const INKS = [ [18,20,26], [10,12,16], [24,52,64], [193,67,47] ];
 
   // Slow swirling current — gives the ink its flowing direction
   function flowAngle(x, y, t) {
@@ -1614,6 +1632,28 @@
     const w = []; for (let i = 0; i < lobes; i++) w.push(0.72 + Math.random()*0.5); return w;
   }
 
+  // A floating lotus leaf (蓮の葉): notched green disc with radial veins
+  function lotus(x, y, r, rot, a) {
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(rot);
+    const notch = 0.42;                                   // the leaf's cleft
+    const grad = ctx.createRadialGradient(0, 0, r*0.1, 0, 0, r);
+    grad.addColorStop(0,   `rgba(126,170,108,${a})`);
+    grad.addColorStop(0.7, `rgba(86,138,86,${a})`);
+    grad.addColorStop(1,   `rgba(58,108,72,${a})`);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, notch, Math.PI*2 - notch);
+    ctx.lineTo(0, 0); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.strokeStyle = `rgba(40,82,58,${a*0.5})`; ctx.lineWidth = 1*dpr;
+    for (let i = 0; i <= 9; i++) {
+      const ang = notch + (Math.PI*2 - 2*notch) * (i/9);
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(ang)*r*0.92, Math.sin(ang)*r*0.92); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // ── Persistent flowing washes (the "flowing ink" — drift forever, never fade) ──
   const washes = [];
   for (let i = 0; i < 3; i++) {
@@ -1621,9 +1661,21 @@
     washes.push({
       x: Math.random()*W, y: Math.random()*H,
       base: (150 + Math.random()*130) * dpr,
-      col: INKS[(Math.random()*3)|0], peak: 0.17,
+      col: INKS[2], peak: 0.09,                          // soft deep-water current
       lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
       phase: Math.random()*6.28, spd: (0.02 + Math.random()*0.02) * dpr,
+    });
+  }
+
+  // ── Drifting lotus leaves floating on the lake surface ──
+  const leaves = [];
+  for (let i = 0; i < 5; i++) {
+    leaves.push({
+      x: Math.random()*W, y: Math.random()*H,
+      r: (44 + Math.random()*46) * dpr, rot: Math.random()*6.28,
+      spin: (Math.random()-0.5) * 0.00006, spd: (0.006 + Math.random()*0.008) * dpr,
+      a: 0.5 + Math.random()*0.28, phase: Math.random()*6.28,
+      sway: 0, swayV: 0,                                   // spring state for wave-rocking
     });
   }
 
@@ -1648,24 +1700,36 @@
     if (o.y < -m) o.y = H+m; else if (o.y > H+m) o.y = -m;
   }
 
-  // ── Click ripples: ink bleeding into water on empty-space taps ──
+  // ── Water/ink ripples: clicks drop strong ink; pointer hover/swipe leaves a soft wake ──
   const ripples = [];
-  function addRipple(px, py) {
-    const col   = Math.random() < 0.25 ? INKS[3] : INKS[(Math.random()*3)|0];
+  function addRipple(px, py, s) {                         // s = strength 0..1
+    const col   = Math.random() < 0.22 ? INKS[3] : INKS[(Math.random()*3)|0];
     const lobes = 6 + ((Math.random()*4)|0);
     ripples.push({
-      x: px, y: py, life: 0, dur: 1900 + Math.random()*700,
-      max: (170 + Math.random()*90) * dpr, peak: 0.30,
+      x: px, y: py, life: 0, dur: (1200 + Math.random()*700) * (0.6 + s*0.7),
+      max: (55 + Math.random()*60 + s*120) * dpr, peak: 0.10 + s*0.26,
       col, lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
     });
   }
   if (!reduce) {
+    const interactive = 'button, a, input, textarea, select, label, [onclick]';
+    const isLight = () => document.documentElement.getAttribute('data-theme') === 'light';
     addEventListener('click', e => {
-      if (document.documentElement.getAttribute('data-theme') !== 'light') return;
-      // only on empty space — skip any interactive control
-      if (e.target.closest('button, a, input, textarea, select, label, [onclick]')) return;
-      addRipple(e.clientX * dpr, e.clientY * dpr);
+      if (!isLight() || e.target.closest(interactive)) return;
+      addRipple(e.clientX * dpr, e.clientY * dpr, 1);       // strong ink drop
     });
+    // hover / finger-swipe wake — throttled, only over open water
+    let lastT = 0, lastX = 0, lastY = 0;
+    addEventListener('pointermove', e => {
+      if (!isLight()) return;
+      const t = performance.now();
+      if (t - lastT < 60) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      if (dx*dx + dy*dy < 260) return;                      // needs real movement
+      lastT = t; lastX = e.clientX; lastY = e.clientY;
+      if (ripples.length > 24 || e.target.closest(interactive)) return;
+      addRipple(e.clientX * dpr, e.clientY * dpr, 0.18);    // soft wake
+    }, { passive: true });
   }
 
   let last = performance.now(), acc = 0;
@@ -1733,7 +1797,33 @@
       blob(rp.x, rp.y, r*0.42, rp.col, a*0.9, rp.lobes, rp.wobble, rp.rot, 0, 0);  // dispersing core
     }
 
+    // floating lotus leaves — crisp, drawn on top of the water/ink, swaying with waves
     if (ctx.filter !== undefined) ctx.filter = 'none';
+    for (const lf of leaves) {
+      const ang = flowAngle(lf.x, lf.y, now);
+      lf.x += Math.cos(ang) * lf.spd * dt;
+      lf.y += Math.sin(ang) * lf.spd * dt;
+      wrap(lf);
+      lf.rot += lf.spin * dt;
+      // rocked by passing ripple wavefronts (spring-damped)
+      for (const rp of ripples) {
+        const dx = lf.x - rp.x, dy = lf.y - rp.y;
+        const d  = Math.hypot(dx, dy) || 1;
+        const front = rp.max * (1 - Math.pow(1 - rp.life/rp.dur, 2));
+        if (Math.abs(d - front) < 55*dpr) {
+          lf.swayV += (dx >= 0 ? 1 : -1) * rp.peak * (1 - rp.life/rp.dur) * 0.05;
+        }
+      }
+      lf.swayV += -0.02 * lf.sway;   // spring restore
+      lf.swayV *= 0.90;              // damping
+      lf.sway  += lf.swayV;
+      const ambient = Math.sin(now*0.0011 + lf.phase) * 0.05;          // gentle constant sway
+      const bob = Math.sin(now*0.0009 + lf.phase)*3*dpr + Math.abs(lf.swayV)*70*dpr;
+      const tilt = lf.rot + ambient + lf.sway;
+      lotus(lf.x + 3*dpr, lf.y + bob + 5*dpr, lf.r, tilt, lf.a*0.12);   // soft water shadow
+      lotus(lf.x, lf.y + bob, lf.r, tilt, lf.a);
+    }
+
     requestAnimationFrame(frame);
   }
 
@@ -1745,6 +1835,8 @@
     if (ctx.filter !== undefined) ctx.filter = 'blur(7px)';
     washes.forEach(w => blob(w.x, w.y, w.base, w.col, w.peak, w.lobes, w.wobble, w.rot, 0.4, 0));
     drops.forEach(d => blob(d.x, d.y, d.max, d.col, d.peak, d.lobes, d.wobble, d.rot, 0.3, 0));
+    if (ctx.filter !== undefined) ctx.filter = 'none';
+    leaves.forEach(lf => lotus(lf.x, lf.y, lf.r, lf.rot, lf.a));
   } else {
     requestAnimationFrame(frame);
   }
