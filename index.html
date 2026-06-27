@@ -1196,11 +1196,13 @@
     [data-theme="dark"] #app,
     [data-theme="dark"] header,
     [data-theme="dark"] nav { position: relative; z-index: 1; }
-    /* Night header — dark lacquer with teal edge glow */
+    /* Night 屏風 header — dark lacquered panels with amber fold lines */
     [data-theme="dark"] header {
-      background: rgba(4,14,24,.92);
-      border-bottom-color: rgba(25,85,108,.32);
-      box-shadow: inset 0 -4px 14px rgba(15,70,95,.10), 0 4px 24px rgba(0,0,0,.55);
+      background:
+        repeating-linear-gradient(90deg, rgba(180,130,40,.14) 0 1px, transparent 1px 92px),
+        linear-gradient(180deg, #0f1a24 0%, #091420 100%);
+      border-bottom: 2px solid rgba(140,100,30,.38);
+      box-shadow: inset 0 -6px 14px rgba(140,100,30,.08), 0 4px 24px rgba(0,0,0,.55);
     }
     [data-theme="dark"] nav {
       background: rgba(3,12,20,.84);
