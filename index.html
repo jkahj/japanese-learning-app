@@ -1179,9 +1179,9 @@
       z-index: 0; pointer-events: none;
     }
     [data-theme="light"] #app,
-    [data-theme="light"] #welcome-screen,
     [data-theme="light"] header,
     [data-theme="light"] nav { position: relative; z-index: 1; }
+    [data-theme="light"] #welcome-screen { position: fixed; z-index: 2000; }
     [data-theme="dark"] #ink-canvas { display: none; }   /* lake effect is light-only */
     @media (prefers-reduced-motion: reduce) { html[data-theme="light"]::before { animation: none; } }
 
@@ -1264,6 +1264,10 @@
     [data-theme="light"] .filter-btn[data-mode="all"].active     { color:#00695c; }
     [data-theme="light"] .vocab-card { background: rgba(252,254,255,.72); border-color: rgba(40,95,105,.16); }
     [data-theme="light"] .vocab-card:hover { background: rgba(255,255,255,.92); box-shadow: 0 8px 28px rgba(30,80,95,.18), 0 0 0 1px rgba(193,67,47,.18); }
+
+    /* Modal overlay — lake teal tint */
+    [data-theme="light"] .modal-overlay,
+    [data-theme="light"] .dict-modal-overlay { background: rgba(14,52,62,.52); }
 
     /* Modal (curated word) — water glass */
     [data-theme="light"] .modal { background: #f3fafb; border-color: rgba(40,95,105,.16); }
@@ -1374,26 +1378,27 @@
     [data-theme="light"] .hlb-n2 { background: rgba(200,100,0,.14);   color: #884000; }
     [data-theme="light"] .hlb-n1 { background: rgba(200,50,50,.14);   color: #8c1a1a; }
 
-    /* Welcome screen */
+    /* Welcome screen — lake gradient matching main bg */
     [data-theme="light"] #welcome-screen {
       background:
-        radial-gradient(ellipse at 20% 20%, rgba(229,57,53,.09) 0%, transparent 45%),
-        radial-gradient(ellipse at 80% 80%, rgba(68,138,255,.06) 0%, transparent 45%),
-        linear-gradient(160deg, #eef0f8 0%, #f5f6fc 50%, #eef1f8 100%);
+        radial-gradient(ellipse at 25% 15%, rgba(150,210,200,.65) 0%, transparent 52%),
+        radial-gradient(ellipse at 78% 88%, rgba(96,168,186,.50) 0%, transparent 52%),
+        radial-gradient(ellipse at 90% 10%,  rgba(140,200,190,.40) 0%, transparent 44%),
+        linear-gradient(170deg, #e4f6f5 0%, #cce8eb 45%, #b0d9e2 100%);
     }
     [data-theme="light"] .welcome-title  { color: var(--text); }
-    [data-theme="light"] .welcome-sub    { color: rgba(0,0,0,.38); }
-    [data-theme="light"] .welcome-prompt { color: rgba(0,0,0,.55); }
-    [data-theme="light"] .welcome-hint   { color: rgba(0,0,0,.28); }
+    [data-theme="light"] .welcome-sub    { color: rgba(20,50,58,.42); }
+    [data-theme="light"] .welcome-prompt { color: rgba(20,50,58,.58); }
+    [data-theme="light"] .welcome-hint   { color: rgba(20,50,58,.30); }
 
-    /* Level cards */
-    [data-theme="light"] .level-card { background: rgba(255,255,255,.72); border-color: rgba(0,0,0,.1); }
-    [data-theme="light"] .level-card:hover { background: rgba(255,255,255,.92); border-color: rgba(0,0,0,.18); box-shadow: 0 12px 40px rgba(0,0,0,.12); }
-    [data-theme="light"] .lc-check { border-color: rgba(0,0,0,.15); }
-    [data-theme="light"] .lc-name  { color: rgba(0,0,0,.45); }
-    [data-theme="light"] .lc-count { color: rgba(0,0,0,.72); }
-    [data-theme="light"] .lc-words { color: rgba(0,0,0,.32); }
-    [data-theme="light"] .lc-topic { background: rgba(0,0,0,.07); color: rgba(0,0,0,.45); }
+    /* Level cards — lake glass */
+    [data-theme="light"] .level-card { background: rgba(232,247,249,.68); border-color: rgba(40,95,105,.18); }
+    [data-theme="light"] .level-card:hover { background: rgba(252,254,255,.92); border-color: rgba(40,95,105,.30); box-shadow: 0 12px 40px rgba(30,80,95,.18); }
+    [data-theme="light"] .lc-check { border-color: rgba(40,95,105,.22); }
+    [data-theme="light"] .lc-name  { color: var(--text-2); }
+    [data-theme="light"] .lc-count { color: var(--text); }
+    [data-theme="light"] .lc-words { color: var(--muted); }
+    [data-theme="light"] .lc-topic { background: rgba(40,95,105,.08); color: var(--text-2); }
 
     /* ── Pitch accent ── */
     [data-theme="light"] .ph-hi    { background: #c0392b; }      /* yellow → vivid red (visible on white) */
