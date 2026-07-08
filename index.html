@@ -16393,25 +16393,38 @@ function renderFlashcard() {
   const statusText = statusLabels[curStatus] || curStatus;
   const statusClr  = statusColors[curStatus]  || 'var(--muted)';
 
+  const listen = localStorage.getItem('jp_fc_listen') === '1';
+  const safeR  = (w.reading || w.word).replace(/"/g,'&quot;');
+  const frontFace = listen
+    ? `<div class="fc-main" style="font-size:54px">🎧</div>
+       <button class="fc-speak-btn" style="opacity:.85;font-size:30px" title="再聽一次"
+         onclick="event.stopPropagation();speakJapanese(this.dataset.r)" data-r="${safeR}">🔊</button>
+       <div class="fc-tip">聽發音 → 回想意思 → 點擊翻轉</div>`
+    : `<div class="fc-main">${w.word}</div>
+       <div class="fc-sub">${w.reading}</div>
+       <button class="fc-speak-btn" title="播放發音"
+         onclick="event.stopPropagation();speakJapanese(this.dataset.r)" data-r="${safeR}">🔊</button>
+       <div class="fc-tip">點擊翻轉查看意思</div>`;
+  const backWord = listen
+    ? `<div style="font-size:28px;font-weight:800;margin-bottom:2px">${w.word}</div>
+       <div class="fc-sub" style="margin-bottom:8px">${w.reading}</div>`
+    : '';
+
   wrap.innerHTML = `
     <div class="fc-topbar">
       <div class="fc-count">${current+1} / ${words.length}</div>
       <div class="fc-progress"><div class="fc-progress-bar" style="width:${pct}%"></div></div>
       <div class="fc-mode-wrap">
-        <span style="font-size:12px;color:${statusClr};font-weight:600">${statusText}</span>
+        <button class="fc-mode-btn${listen ? ' active' : ''}" onclick="toggleFcListen()"
+          title="聽力模式：先聽發音再回想">🎧 聽力</button>
+        <span style="font-size:12px;color:${statusClr};font-weight:600;align-self:center">${statusText}</span>
       </div>
     </div>
     <div class="flashcard" id="fc-card" onclick="flipCard()">
       <div class="fc-inner">
-        <div class="fc-face fc-front">
-          <div class="fc-main">${w.word}</div>
-          <div class="fc-sub">${w.reading}</div>
-          <button class="fc-speak-btn" title="播放發音"
-            onclick="event.stopPropagation();speakJapanese(this.dataset.r)"
-            data-r="${(w.reading||w.word).replace(/"/g,'&quot;')}">🔊</button>
-          <div class="fc-tip">點擊翻轉查看意思</div>
-        </div>
+        <div class="fc-face fc-front">${frontFace}</div>
         <div class="fc-face fc-back">
+          ${backWord}
           <div class="fc-meaning" id="fc-meaning-text"
             style="font-size:${backDisplay.length > 30 ? '18px' : '26px'}">${backDisplay}</div>
           <div class="fc-sub" style="font-size:14px">${w.pos}</div>
@@ -16425,6 +16438,14 @@ function renderFlashcard() {
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">翻轉後選擇熟悉程度</div>`;
   state.fc.flipped = false;
+  if (listen) speakJapanese(w.reading || w.word);   // auto-play in listening mode
+}
+
+/** Toggle flashcard listening mode (audio-first recall) */
+function toggleFcListen() {
+  const on = localStorage.getItem('jp_fc_listen') === '1';
+  localStorage.setItem('jp_fc_listen', on ? '0' : '1');
+  renderFlashcard();
 }
 
 /** Load a fresh batch of dict words the user hasn't seen yet today */
