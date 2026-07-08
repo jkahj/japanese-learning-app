@@ -949,7 +949,8 @@
     .gc-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; }
     .gc-pattern {
       font-size: 14px; font-weight: 800; padding: 5px 12px;
-      border-radius: 8px; white-space: nowrap; flex-shrink: 0; letter-spacing: .3px;
+      border-radius: 8px; letter-spacing: .3px;
+      max-width: 46%; /* long English patterns wrap instead of crushing the title */
     }
     .gc-n5 { background: rgba(68,138,255,.18);  color: #7eb3ff; }
     .gc-n4 { background: rgba(0,230,118,.14);   color: #5ef5a0; }
