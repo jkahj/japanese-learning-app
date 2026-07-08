@@ -1647,32 +1647,16 @@
   resize();
   addEventListener('resize', resize);
 
-  // Sumi-ink (light) + night-lake (dark)
-  const INKS      = [ [18,20,26], [10,12,16], [24,52,64], [193,67,47] ];
+  // Clear-water ripple tints (light) + night-lake (dark)
+  const WATER     = [ [255,255,255], [150,210,215], [95,175,190] ];
   const NIGHT_COL = [ [20,80,100], [15,62,84], [180,120,40], [200,140,50] ];
   const isLight = () => document.documentElement.getAttribute('data-theme') === 'light';
+  const rgba  = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  const shade = (c, d) => [Math.max(0,c[0]+d), Math.max(0,c[1]+d), Math.max(0,c[2]+d)];
 
   function flowAngle(x, y, t) {
     return Math.sin(x*0.0011 + t*0.00009) * 1.7
          + Math.cos(y*0.0013 - t*0.00011) * 1.7;
-  }
-
-  function blob(x, y, r, col, a, lobes, wobble, rot, stretch, ang) {
-    ctx.save();
-    ctx.translate(x, y); ctx.rotate(ang);
-    ctx.scale(1 + stretch, 1 / (1 + stretch*0.5));
-    const grad = ctx.createRadialGradient(0, 0, r*0.12, 0, 0, r);
-    grad.addColorStop(0,   `rgba(${col[0]},${col[1]},${col[2]},${a})`);
-    grad.addColorStop(0.6, `rgba(${col[0]},${col[1]},${col[2]},${a*0.45})`);
-    grad.addColorStop(1,   `rgba(${col[0]},${col[1]},${col[2]},0)`);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    for (let i = 0; i <= 46; i++) {
-      const t = (i/46)*Math.PI*2, w = wobble[i % lobes];
-      const rr = r*(0.82 + 0.18*Math.sin(t*lobes + rot))*w;
-      i ? ctx.lineTo(Math.cos(t)*rr, Math.sin(t)*rr) : ctx.moveTo(Math.cos(t)*rr, Math.sin(t)*rr);
-    }
-    ctx.closePath(); ctx.fill(); ctx.restore();
   }
 
   function makeWobble(lobes) {
@@ -1776,16 +1760,6 @@
   }
 
   // Light mode objects
-  const washes = [];
-  for (let i = 0; i < 3; i++) {
-    const lobes = 5 + ((Math.random()*4)|0);
-    washes.push({
-      x: Math.random()*W, y: Math.random()*H,
-      base: (150 + Math.random()*130)*dpr, col: INKS[2], peak: 0.09,
-      lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
-      phase: Math.random()*6.28, spd: (0.02 + Math.random()*0.02)*dpr,
-    });
-  }
   const leaves = [];
   for (let i = 0; i < 5; i++) {
     leaves.push({
@@ -1795,17 +1769,137 @@
       a: 0.5 + Math.random()*0.28, phase: Math.random()*6.28, sway: 0, swayV: 0,
     });
   }
-  const drops = [];
-  function spawn() {
-    const v = Math.random() < 0.18, col = v ? INKS[3] : INKS[(Math.random()*3)|0];
-    const lobes = 5 + ((Math.random()*4)|0);
-    drops.push({
-      x: Math.random()*W, y: Math.random()*H, r: 4*dpr,
-      max: (v ? 65 : 120)*dpr*(0.6 + Math.random()*0.9),
-      peak: v ? 0.24 : 0.18, life: 0, dur: 7000 + Math.random()*6000,
-      col, lobes, wobble: makeWobble(lobes), rot: Math.random()*6.28,
-      spd: (0.03 + Math.random()*0.03)*dpr,
+  /* ── Koi ──────────────────────────────────────────────────
+     Seen from above through clear water. Undulating spine,
+     tail/pectoral fins, clipped colour patches, depth = smaller
+     + more blur + fainter, with a soft shadow on the lake bed. */
+  const KOI_PAL = [
+    { base:[246,244,238], belly:[255,255,252], patches:[[214,72,28],[224,96,36]] },  // 紅白 kohaku
+    { base:[236,148,44],  belly:[248,190,110], patches:[[250,205,120]] },            // 黄金 ogon
+    { base:[244,242,236], belly:[255,255,250], patches:[[36,34,40],[212,70,30]] },   // 昭和 showa
+  ];
+  const kois = [];
+  for (let i = 0; i < 6; i++) {
+    const pal   = KOI_PAL[i % KOI_PAL.length];
+    const depth = Math.random()*0.75;
+    const patches = [];
+    const n = 2 + ((Math.random()*3)|0);
+    for (let j = 0; j < n; j++) {
+      patches.push({
+        t:   0.08 + Math.random()*0.72,
+        off: (Math.random()*2 - 1)*0.6,
+        r:   0.10 + Math.random()*0.13,
+        col: pal.patches[(Math.random()*pal.patches.length)|0],
+      });
+    }
+    const heading = Math.random()*6.28;
+    kois.push({
+      x: Math.random()*W, y: Math.random()*H,
+      heading, target: heading,
+      speed: (0.020 + Math.random()*0.022)*dpr,
+      phase: Math.random()*6.28, turnAt: 0,
+      len: (70 + Math.random()*80)*dpr*(1 - depth*0.35),
+      depth, pal, patches,
     });
+  }
+  kois.sort((a, b) => b.depth - a.depth);   // deepest painted first
+
+  function koiDraw(f) {
+    const L = f.len;
+    const A = 0.92*(1 - f.depth*0.5);
+
+    // Lake-bed shadow (soft radial gradient — no ctx.filter, it's too slow per-frame)
+    ctx.save();
+    ctx.translate(f.x + L*0.06, f.y + L*(0.20 + f.depth*0.30));
+    ctx.rotate(f.heading);
+    ctx.scale(1, 0.32);
+    const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, L*0.48);
+    sg.addColorStop(0, `rgba(10,40,50,${0.12*(1 - f.depth*0.5)})`);
+    sg.addColorStop(1, 'rgba(10,40,50,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(0, 0, L*0.48, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.heading);
+
+    // Spine + half-width profile (head → tail)
+    const PROF = [0.30,0.46,0.50,0.48,0.42,0.34,0.26,0.19,0.13,0.08,0.05];
+    const N = 10, sp = [], hw = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i/N;
+      sp.push([ L*0.5 - t*L,
+                Math.sin(f.phase - t*4.6)*L*0.085*(0.15 + 0.85*t*t) ]);
+      hw.push(PROF[i]*L*0.33);
+    }
+    const tail = sp[N];
+
+    // Tail fin (behind body)
+    const tw = Math.sin(f.phase - 6.0)*L*0.10;
+    ctx.fillStyle = rgba(f.pal.base, A*0.55);
+    ctx.beginPath();
+    ctx.moveTo(tail[0], tail[1]);
+    ctx.quadraticCurveTo(tail[0]-L*0.16, tail[1]+tw*0.5-L*0.10, tail[0]-L*0.30, tail[1]+tw-L*0.14);
+    ctx.quadraticCurveTo(tail[0]-L*0.20, tail[1]+tw,            tail[0]-L*0.30, tail[1]+tw+L*0.14);
+    ctx.quadraticCurveTo(tail[0]-L*0.16, tail[1]+tw*0.5+L*0.10, tail[0], tail[1]);
+    ctx.fill();
+
+    // Pectoral fins
+    const flap = 0.35 + 0.25*Math.sin(f.phase*0.9);
+    for (const s of [-1, 1]) {
+      ctx.save();
+      ctx.translate(sp[2][0], sp[2][1] + s*hw[2]*0.9);
+      ctx.rotate(s*(0.9 + flap*0.3));
+      ctx.fillStyle = rgba(f.pal.base, A*0.45);
+      ctx.beginPath(); ctx.ellipse(L*0.07, 0, L*0.13, L*0.05, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Body outline with rounded nose
+    ctx.beginPath();
+    ctx.moveTo(sp[0][0], sp[0][1]-hw[0]);
+    for (let i = 1; i <= N; i++) ctx.lineTo(sp[i][0], sp[i][1]-hw[i]);
+    for (let i = N; i >= 0; i--) ctx.lineTo(sp[i][0], sp[i][1]+hw[i]);
+    ctx.quadraticCurveTo(sp[0][0]+hw[0]*1.9, sp[0][1], sp[0][0], sp[0][1]-hw[0]);
+    ctx.closePath();
+    const bg = ctx.createLinearGradient(0, -L*0.17, 0, L*0.17);
+    bg.addColorStop(0,   rgba(shade(f.pal.base, -18), A));
+    bg.addColorStop(0.5, rgba(f.pal.belly, A));
+    bg.addColorStop(1,   rgba(shade(f.pal.base, -18), A));
+    ctx.fillStyle = bg; ctx.fill();
+
+    // Colour patches, clipped to the body
+    ctx.save(); ctx.clip();
+    for (const p of f.patches) {
+      const fi = p.t*N, i0 = Math.floor(fi), i1 = Math.min(i0+1, N), fr = fi - i0;
+      const px = sp[i0][0]*(1-fr) + sp[i1][0]*fr;
+      const py = sp[i0][1]*(1-fr) + sp[i1][1]*fr + p.off*hw[i0];
+      const pr = p.r*L;
+      const g = ctx.createRadialGradient(px, py, pr*0.25, px, py, pr);
+      g.addColorStop(0,    rgba(p.col, A*0.95));
+      g.addColorStop(0.75, rgba(p.col, A*0.85));
+      g.addColorStop(1,    rgba(p.col, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+    }
+    // Top-light sheen along the back
+    ctx.strokeStyle = `rgba(255,255,255,${A*0.20})`;
+    ctx.lineWidth = L*0.05; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sp[0][0]+hw[0]*0.4, sp[0][1]);
+    for (let i = 1; i <= N-2; i++) ctx.lineTo(sp[i][0], sp[i][1]-hw[i]*0.25);
+    ctx.stroke();
+    ctx.restore();
+
+    // Eyes
+    ctx.fillStyle = `rgba(15,15,18,${A*0.9})`;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(sp[0][0]+hw[0]*0.35, sp[0][1]+s*hw[0]*0.62, Math.max(L*0.018, 1), 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   // Dark mode objects: paper lanterns
@@ -1832,8 +1926,8 @@
   // Shared ripple system - colours adapt to theme
   const ripples = [];
   function addRipple(px, py, s) {
-    const pal = isLight() ? INKS : NIGHT_COL;
-    const col = (isLight() && Math.random() < 0.22) ? INKS[3] : pal[(Math.random()*pal.length)|0];
+    const pal = isLight() ? WATER : NIGHT_COL;
+    const col = pal[(Math.random()*pal.length)|0];
     const lobes = 6 + ((Math.random()*4)|0);
     ripples.push({
       x:px, y:py, life:0, dur:(1200+Math.random()*700)*(0.6+s*0.7),
@@ -1879,40 +1973,41 @@
         s ? ctx.lineTo(Math.cos(t)*rr, Math.sin(t)*rr) : ctx.moveTo(Math.cos(t)*rr, Math.sin(t)*rr);
       }
       ctx.closePath(); ctx.fill(); ctx.restore();
-      if (isLight()) blob(rp.x, rp.y, r*0.42, rp.col, a*0.9, rp.lobes, rp.wobble, rp.rot, 0, 0);
     }
   }
 
-  let last = performance.now(), acc = 0;
+  let last = performance.now();
   function frame(now) {
     if (document.hidden) { last = now; return requestAnimationFrame(frame); }
     const dt = Math.min(now - last, 80); last = now;
     ctx.clearRect(0, 0, W, H);
 
     if (isLight()) {
-      // Light mode: sumi ink + lotus
-      if (ctx.filter !== undefined) ctx.filter = 'blur(7px)';
-      for (const w of washes) {
-        const ang = flowAngle(w.x, w.y, now);
-        w.x += Math.cos(ang)*w.spd*dt; w.y += Math.sin(ang)*w.spd*dt;
-        wrap(w); w.rot += 0.00004*dt;
-        const r = w.base*(1 + 0.12*Math.sin(now*0.0002 + w.phase));
-        blob(w.x, w.y, r, w.col, w.peak, w.lobes, w.wobble, w.rot, 0.5, ang);
-      }
-      acc += dt;
-      if (acc > 1500 && drops.length < 7) { acc = 0; spawn(); }
-      for (let i = drops.length - 1; i >= 0; i--) {
-        const d = drops[i]; d.life += dt;
-        const p = d.life/d.dur;
-        if (p >= 1) { drops.splice(i, 1); continue; }
-        const ang = flowAngle(d.x, d.y, now);
-        d.x += Math.cos(ang)*d.spd*dt; d.y += Math.sin(ang)*d.spd*dt;
-        d.r = d.max*(1 - Math.pow(1 - Math.min(p*1.6,1), 3));
-        const fade = p < 0.5 ? p/0.5 : 1-(p-0.5)/0.5;
-        blob(d.x, d.y, d.r, d.col, d.peak*fade, d.lobes, d.wobble, d.rot, 0.35, ang);
+      // Light mode: clear water — koi below, ripples + lotus on the surface
+      for (const f of kois) {
+        if (now > f.turnAt) {
+          f.turnAt = now + 2500 + Math.random()*4000;
+          f.target = f.heading + (Math.random()*2 - 1)*1.3;
+        }
+        const m = 120*dpr;   // steer back toward centre near edges
+        if (f.x < m || f.x > W-m || f.y < m || f.y > H-m) {
+          f.target = Math.atan2(H/2 - f.y, W/2 - f.x);
+        }
+        let dh = f.target - f.heading;
+        dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+        f.heading += dh*Math.min(1, dt*0.0009);
+        const sp = f.speed*(0.75 + 0.25*Math.sin(now*0.0006 + f.phase));
+        f.x += Math.cos(f.heading)*sp*dt;
+        f.y += Math.sin(f.heading)*sp*dt;
+        f.phase += dt*(0.004 + (sp/dpr)*0.06);
+        // shallow koi occasionally kiss the surface
+        if (f.depth < 0.25 && Math.random() < dt*0.00006) {
+          addRipple(f.x + Math.cos(f.heading)*f.len*0.4,
+                    f.y + Math.sin(f.heading)*f.len*0.4, 0.25);
+        }
+        koiDraw(f);
       }
       drawRipples(dt);
-      if (ctx.filter !== undefined) ctx.filter = 'none';
       for (const lf of leaves) {
         const ang = flowAngle(lf.x, lf.y, now);
         lf.x += Math.cos(ang)*lf.spd*dt; lf.y += Math.sin(ang)*lf.spd*dt;
@@ -1971,15 +2066,13 @@
     requestAnimationFrame(frame);
   }
 
-  for (let i = 0; i < 3; i++) { spawn(); drops[i].life = Math.random()*4000; }
-
   if (reduce) {
-    if (ctx.filter !== undefined) ctx.filter = 'blur(7px)';
-    washes.forEach(w => blob(w.x, w.y, w.base, w.col, w.peak, w.lobes, w.wobble, w.rot, 0.4, 0));
-    drops.forEach(d => blob(d.x, d.y, d.max, d.col, d.peak, d.lobes, d.wobble, d.rot, 0.3, 0));
-    if (ctx.filter !== undefined) ctx.filter = 'none';
-    leaves.forEach(lf => lotus(lf.x, lf.y, lf.r, lf.rot, lf.a));
-    lanterns.forEach(ln => lantern(ln.x, ln.y, ln.r, 0, ln.a, 0.9));
+    if (isLight()) {
+      kois.forEach(koiDraw);
+      leaves.forEach(lf => lotus(lf.x, lf.y, lf.r, lf.rot, lf.a));
+    } else {
+      lanterns.forEach(ln => lantern(ln.x, ln.y, ln.r, 0, ln.a, 0.9));
+    }
   } else {
     requestAnimationFrame(frame);
   }
