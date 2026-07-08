@@ -962,18 +962,7 @@
     .gc-title      { font-size: 14px; font-weight: 700; color: var(--text); }
     .gc-mean       { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .gc-lv-badge   { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
-    .gc-chevron    { font-size: 12px; color: var(--muted); transition: transform .25s; flex-shrink: 0; }
-    .grammar-card.open .gc-chevron { transform: rotate(180deg); }
 
-    .gc-body {
-      max-height: 0; overflow: hidden;
-      transition: max-height .35s ease, padding .25s ease;
-      padding: 0 16px; border-top: 1px solid transparent;
-    }
-    .grammar-card.open .gc-body {
-      max-height: 600px; padding: 14px 16px 16px;
-      border-top-color: rgba(255,255,255,.07);
-    }
     .gc-struct {
       display: inline-block; background: rgba(255,255,255,.07);
       border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 600;
@@ -1356,7 +1345,6 @@
 
     /* Grammar card */
     [data-theme="light"] .grammar-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,.1); }
-    [data-theme="light"] .grammar-card.open .gc-body { border-top-color: rgba(0,0,0,.08); }
     [data-theme="light"] .gc-struct { background: rgba(0,0,0,.05); color: var(--text); }
     [data-theme="light"] .gc-note   { background: rgba(255,215,64,.1); }
 
@@ -1379,7 +1367,8 @@
     [data-theme="light"] .dm-src-note { background: rgba(0,0,0,.04); }
 
     /* Dict modal – night lake overrides */
-    [data-theme="dark"] .example {
+    [data-theme="dark"] .example,
+    [data-theme="dark"] .gc-ex {
       background: rgba(15,68,92,.15);
       border-left-color: rgba(40,165,180,.50);
     }
@@ -15167,7 +15156,6 @@ state.grammarFilter = 'all';
 state.grammarSearch  = '';
 
 // Which card IDs are currently expanded
-const expandedCards = new Set();
 
 /** Filter-bar button click */
 function setGrammarFilter(lv, btn) {
@@ -15205,13 +15193,42 @@ function grammarHighlight(text, q) {
     m => `<span class="gc-highlight">${m}</span>`);
 }
 
-/** Toggle a grammar card open/closed */
-function toggleGrammarCard(id) {
-  if (expandedCards.has(id)) expandedCards.delete(id);
-  else                        expandedCards.add(id);
+/** Open grammar details in the shared detail modal */
+function openGrammarModal(id) {
+  const g = GRAMMAR.find(x => x.id === id);
+  if (!g) return;
+  const q = state.grammarSearch;
+  const lvc = g.lv.toLowerCase();
+  const examples = g.ex.map(e => `
+    <div class="gc-ex">
+      <div class="gc-ex-ja">${grammarHighlight(e.ja, q)}</div>
+      <div class="gc-ex-zh">${grammarHighlight(e.zh, q)}</div>
+    </div>`).join('');
+  const noteHTML = g.note
+    ? `<div class="sec-lbl">注意</div>
+       <div class="gc-note"><span class="gc-note-label">💡</span>${grammarHighlight(g.note, q)}</div>`
+    : '';
 
-  const card = document.querySelector(`.grammar-card[data-id="${id}"]`);
-  if (card) card.classList.toggle('open', expandedCards.has(id));
+  document.getElementById('dict-modal-content').innerHTML = `
+    <div class="dict-modal-hd">
+      <button class="dict-modal-close" onclick="closeDictModal()">×</button>
+      <div class="gc-pattern gc-${lvc}" style="display:inline-block;max-width:none;font-size:17px">${g.pat}</div>
+      <div style="font-size:20px;font-weight:800;margin-top:12px">${g.title}</div>
+      <div style="font-size:13px;opacity:.75;margin-top:4px">${g.mean}</div>
+      <div class="dm-badges" style="margin-top:12px">
+        <span class="gc-lv-badge b-${lvc}">${g.lv}</span>
+      </div>
+    </div>
+    <div class="dict-modal-bd">
+      <div class="sec-lbl">結構</div>
+      <div class="gc-struct">${grammarHighlight(g.struct, q)}</div>
+      <div class="sec-lbl">說明</div>
+      <div class="gc-expl">${grammarHighlight(g.expl, q)}</div>
+      <div class="sec-lbl">例句</div>
+      <div class="gc-examples">${examples}</div>
+      ${noteHTML}
+    </div>`;
+  document.getElementById('dict-modal-overlay').classList.add('open');
 }
 
 /** Build and inject all grammar cards */
@@ -15249,42 +15266,17 @@ function renderGrammar() {
     return;
   }
 
-  // Auto-expand cards when searching so matches are immediately visible
-  if (q) filtered.forEach(g => expandedCards.add(g.id));
-
-  grid.innerHTML = filtered.map(g => {
-    const lvClass  = `gc-${g.lv.toLowerCase()}`;
-    const isOpen   = expandedCards.has(g.id);
-    const examples = g.ex.map(e => `
-      <div class="gc-ex">
-        <div class="gc-ex-ja">${grammarHighlight(e.ja, q)}</div>
-        <div class="gc-ex-zh">${grammarHighlight(e.zh, q)}</div>
-      </div>`).join('');
-    const noteHTML = g.note
-      ? `<div class="gc-note"><span class="gc-note-label">💡 注意</span>${grammarHighlight(g.note, q)}</div>`
-      : '';
-
-    return `
-    <div class="grammar-card ${isOpen ? 'open' : ''}" data-id="${g.id}">
-      <!-- Clickable header -->
-      <div class="gc-header" onclick="toggleGrammarCard('${g.id}')">
-        <div class="gc-pattern ${lvClass}">${grammarHighlight(g.pat, q)}</div>
+  grid.innerHTML = filtered.map(g => `
+    <div class="grammar-card" data-id="${g.id}">
+      <div class="gc-header" onclick="openGrammarModal('${g.id}')">
+        <div class="gc-pattern gc-${g.lv.toLowerCase()}">${grammarHighlight(g.pat, q)}</div>
         <div class="gc-title-wrap">
           <div class="gc-title">${grammarHighlight(g.title, q)}</div>
           <div class="gc-mean">${grammarHighlight(g.mean, q)}</div>
         </div>
         <span class="gc-lv-badge b-${g.lv.toLowerCase()}">${g.lv}</span>
-        <span class="gc-chevron">▼</span>
       </div>
-      <!-- Collapsible body -->
-      <div class="gc-body">
-        <div class="gc-struct">${grammarHighlight(g.struct, q)}</div>
-        <div class="gc-expl">${grammarHighlight(g.expl, q)}</div>
-        <div class="gc-examples">${examples}</div>
-        ${noteHTML}
-      </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
 /* ═══════════════════════════════════════════
