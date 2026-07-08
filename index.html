@@ -2308,6 +2308,7 @@
       <button class="qm-btn active" data-qmode="normal" onclick="setQuizMode('normal')">📖 看字</button>
       <button class="qm-btn"        data-qmode="listen" onclick="setQuizMode('listen')">🎧 聽力</button>
       <button class="qm-btn"        data-qmode="cloze"  onclick="setQuizMode('cloze')">✏️ 克漏字</button>
+      <button class="qm-btn"        data-qmode="grammar" onclick="setQuizMode('grammar')">📐 文法</button>
     </div>
     <div id="quiz-daily-banner" class="fc-daily-banner"></div>
     <div class="quiz-wrap" id="quiz-wrap"></div>
@@ -16576,6 +16577,15 @@ function hapticAnswer(correct) {
 ═══════════════════════════════════════════ */
 async function initQuiz() {
   const wrap = document.getElementById('quiz-wrap');
+
+  if ((state.quizMode || 'normal') === 'grammar') {
+    const banner = document.getElementById('quiz-daily-banner');
+    if (banner) banner.innerHTML = '';
+    state.gquiz = { qs: buildGrammarQuestions(10), current: 0, score: 0, answered: false };
+    renderGrammarQuiz();
+    return;
+  }
+
   wrap.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><div>翻譯單字中，請稍候…</div></div>`;
 
   // Use today's flashcard words as the quiz pool
@@ -16711,6 +16721,124 @@ function renderQuiz() {
     <button class="quiz-next-btn" id="quiz-next" onclick="quizNext()">下一題 →</button>`;
 
   if (mode === 'listen') speakJapanese(w.reading, state.listenRate || 0.85);   // auto-play
+}
+
+/* ── Grammar quiz: cloze the pattern fragment out of a real example ── */
+function buildGrammarQuestions(count = 10) {
+  const pool = GRAMMAR.filter(g => !state.selectedLevels.length || state.selectedLevels.includes(g.lv));
+  const shuffled = [...pool].sort(() => Math.random() - .5);
+
+  // Longest literal JP fragment of the pattern that appears in an example
+  const fragOf = g => {
+    const frags = (g.pat.match(/[ぁ-んァ-ヶ一-鿿ー]+/g) || []).sort((a, b) => b.length - a.length);
+    for (const f of frags) {
+      const ex = g.ex.find(e => e.ja.includes(f));
+      if (ex) return { f, ex };
+    }
+    return null;
+  };
+
+  const qs = [];
+  for (const g of shuffled) {
+    if (qs.length >= count) break;
+    const hit = fragOf(g);
+    if (hit) {
+      const ds = [];
+      for (const o of shuffled) {
+        if (o === g) continue;
+        const cand = (o.pat.match(/[ぁ-んァ-ヶ一-鿿ー]+/g) || [])[0];
+        if (cand && cand !== hit.f && !ds.includes(cand)) ds.push(cand);
+        if (ds.length >= 3) break;
+      }
+      if (ds.length < 3) continue;
+      qs.push({
+        type: 'cloze', g,
+        ja: hit.ex.ja.replace(hit.f, '<span class="cloze-blank">＿＿</span>'),
+        zh: hit.ex.zh, answer: hit.f,
+        opts: [...ds, hit.f].sort(() => Math.random() - .5),
+      });
+    } else {
+      // No literal fragment → meaning → pattern multiple choice
+      const ds = shuffled.filter(o => o !== g).slice(0, 3).map(o => o.pat);
+      if (ds.length < 3) continue;
+      qs.push({ type: 'pat', g, answer: g.pat,
+                opts: [...ds, g.pat].sort(() => Math.random() - .5) });
+    }
+  }
+  return qs;
+}
+
+function renderGrammarQuiz() {
+  const { qs, current, score } = state.gquiz;
+  const wrap = document.getElementById('quiz-wrap');
+  if (!qs.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">📐</div>
+      <div>目前選擇的等級沒有可出題的文法項目</div></div>`;
+    return;
+  }
+  if (current >= qs.length) {
+    const pct = Math.round((score / qs.length) * 100);
+    const emoji = pct >= 80 ? '🏆' : pct >= 60 ? '👍' : '📚';
+    wrap.innerHTML = `<div class="quiz-result">
+      <div style="font-size:64px">${emoji}</div>
+      <div class="result-score">${score} / ${qs.length}</div>
+      <div class="result-lbl">正確率 ${pct}%</div>
+      <button class="restart-btn" onclick="initQuiz()">再來一次</button>
+    </div>`;
+    return;
+  }
+
+  const q = qs[current];
+  const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  const prompt = q.type === 'cloze'
+    ? `<div class="quiz-q">
+         <div class="cloze-sentence">${q.ja}</div>
+         ${q.zh ? `<div class="cloze-zh">${q.zh}</div>` : ''}
+       </div>`
+    : `<div class="quiz-q">
+         <div class="quiz-word" style="font-size:22px">${q.g.title}</div>
+         <div class="quiz-reading">${q.g.mean}</div>
+       </div>`;
+  const optsHTML = q.opts.map(o =>
+    `<button class="quiz-opt" data-v="${escAttr(o)}" onclick="gquizAnswer(this)">${o}</button>`).join('');
+
+  wrap.innerHTML = `
+    <div class="quiz-hd">
+      <div>${current+1} / ${qs.length}</div>
+      <div class="quiz-score">得分：${score}</div>
+    </div>
+    <div class="fc-progress" style="margin-bottom:24px">
+      <div class="fc-progress-bar" style="width:${Math.round((current/qs.length)*100)}%"></div>
+    </div>
+    ${prompt}
+    <div class="quiz-opts">${optsHTML}</div>
+    <div id="gq-explain" style="font-size:13px;color:var(--text-2);text-align:center;margin-top:4px"></div>
+    <button class="quiz-next-btn" id="quiz-next" onclick="gquizNext()">下一題 →</button>`;
+}
+
+function gquizAnswer(btn) {
+  if (state.gquiz.answered) return;
+  state.gquiz.answered = true;
+  const q = state.gquiz.qs[state.gquiz.current];
+  const ok = btn.dataset.v === q.answer;
+  if (ok) state.gquiz.score++;
+  document.querySelectorAll('.quiz-opt').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.v === q.answer) b.classList.add('correct');
+  });
+  if (!ok) btn.classList.add('wrong');
+  hapticAnswer(ok);
+  const ex = document.getElementById('gq-explain');
+  if (ex) ex.innerHTML = `📐 ${q.g.pat}｜${q.g.title}
+    <button class="filter-btn" style="margin-left:8px;padding:3px 10px;font-size:11px"
+      onclick="openGrammarModal('${q.g.id}')">查看詳解</button>`;
+  document.getElementById('quiz-next').style.display = 'block';
+}
+
+function gquizNext() {
+  state.gquiz.current++;
+  state.gquiz.answered = false;
+  renderGrammarQuiz();
 }
 
 function setQuizMode(mode) {
