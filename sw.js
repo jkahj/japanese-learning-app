@@ -7,8 +7,9 @@
      • Everything else                        → Network-first, cache fallback
 ═══════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME  = 'jp-app-v1';
-const SHELL_CACHE = 'jp-shell-v1';
+// __BUILD__ is stamped with the commit SHA by the deploy workflow;
+// locally it stays literal, which is still a valid cache name.
+const SHELL_CACHE = 'jp-shell-__BUILD__';
 const DICT_CACHE  = 'jp-dict-v1';
 
 // Core app shell — cached on install
@@ -70,7 +71,7 @@ self.addEventListener('fetch', event => {
   }
 
   // App shell — cache-first, refresh in background (stale-while-revalidate)
-  if (SHELL_ASSETS.some(a => url.pathname === a || url.pathname === a + 'index.html')) {
+  if (SHELL_ASSETS.includes(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request, SHELL_CACHE));
     return;
   }

@@ -15,6 +15,9 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Stamp service worker cache version
+        run: sed -i "s/__BUILD__/${GITHUB_SHA::8}/" sw.js
+
       - name: Deploy to Firebase Hosting
         run: firebase deploy --only hosting --token "$FIREBASE_TOKEN" --project japanese-b4d88 --non-interactive
         env:

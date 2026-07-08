@@ -14968,6 +14968,11 @@ const GRAMMAR = [
   },
 ];
 
+/* ── Escape user-entered text before innerHTML interpolation ── */
+function escUser(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 /* ── Load any previously promoted words into VOCAB at startup ── */
 (function loadPromotedVocab() {
   try {
@@ -15827,7 +15832,7 @@ function openModal(id) {
       <div class="sec-lbl">學習狀態</div>
       <div class="status-btns">${stBtns}</div>
       <div class="sec-lbl">個人筆記</div>
-      <textarea class="note-area" id="note-${id}" placeholder="寫下你的記憶口訣、補充說明…">${note}</textarea>
+      <textarea class="note-area" id="note-${id}" placeholder="寫下你的記憶口訣、補充說明…">${escUser(note)}</textarea>
       <div>
         <button class="save-note-btn" onclick="saveNote(${id})">儲存筆記</button>
         <span class="note-saved" id="saved-${id}">✓ 已儲存</span>
@@ -16138,7 +16143,7 @@ async function zhOf(text) {
   if (c[text]) return c[text];
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const j   = await res.json();
     const t   = (j[0] || []).map(seg => (seg[0] || '')).join('').trim();
     if (t && t !== text) { c[text] = t; saveZhCache(); return t; }
@@ -17215,7 +17220,7 @@ function saveExCache(c) {
 async function jaToZh(text) {
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=zh-TW&dt=t&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const j   = await res.json();
     return (j[0] || []).map(s => s[0] || '').join('').trim();
   } catch(e) { return ''; }
@@ -17747,7 +17752,7 @@ async function openJishoModal(slug) {
       <div class="dm-status-row">${stHTML}</div>
       <div class="sec-lbl" style="margin-top:22px">個人筆記</div>
       <textarea class="note-area" id="dict-note-area"
-        placeholder="寫下你的記憶口訣、補充說明…">${wd.note||''}</textarea>
+        placeholder="寫下你的記憶口訣、補充說明…">${escUser(wd.note||'')}</textarea>
       <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
         <button class="save-note-btn"
           data-slug="${slug.replace(/&/g,'&amp;')}"
@@ -18084,7 +18089,7 @@ function openDictModal(word) {
       <div class="sec-lbl" style="margin-top:22px">學習狀態</div>
       <div class="dm-status-row">${stHTML}</div>
       <div class="sec-lbl" style="margin-top:22px">個人筆記</div>
-      <textarea class="note-area" id="dict-note-area" placeholder="寫下你的記憶口訣、補充說明…">${savedNote}</textarea>
+      <textarea class="note-area" id="dict-note-area" placeholder="寫下你的記憶口訣、補充說明…">${escUser(savedNote)}</textarea>
       <div style="margin-top:6px;display:flex;align-items:center;gap:10px">
         <button class="save-note-btn" onclick="saveDictNote()">保存筆記</button>
         <span class="note-saved" id="dict-note-saved">已保存 ✓</span>
@@ -18552,7 +18557,17 @@ function removePromotedWord(kanji) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('[SW] registered, scope:', reg.scope))
+      .then(reg => {
+        console.log('[SW] registered, scope:', reg.scope);
+        // Reload once when a new version activates (skip first-ever install)
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!navigator.serviceWorker.controller) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'activated') location.reload();
+          });
+        });
+      })
       .catch(err => console.warn('[SW] registration failed:', err));
   });
 }

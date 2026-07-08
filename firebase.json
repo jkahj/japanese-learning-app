@@ -4,7 +4,20 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "Work Log/**",
+      "_anki/**",
+      "_backup/**",
+      "_dev/**",
+      "_docs/**",
+      "_source/**",
+      "Class/**",
+      "docs/**",
+      "skills-lock.json",
+      "firestore.rules"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
