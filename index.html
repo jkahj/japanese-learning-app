@@ -17229,61 +17229,58 @@ function autoExamples(word, reading, pos) {
   if (isVerb) {
     const masu = get('ます形'), te = get('て形'), ta = get('た形'), nai = get('ない形');
     return pickTwo([
-      masu ? {ja:`毎日${masu}習慣があります。`,       zh:`（有每天〜的習慣）`} : null,
-      te   ? {ja:`${te}みてください。`,               zh:`（請試著〜看看）`} : null,
-      ta   ? {ja:`もう${ta}ので、大丈夫です。`,       zh:`（已經〜了，所以沒問題）`} : null,
-      ta   ? {ja:`${ta}ことがありますか。`,           zh:`（你有過〜的經驗嗎？）`} : null,
-      masu ? {ja:`一緒に${masu}か？`,                 zh:`（要不要一起〜？）`} : null,
-      te   ? {ja:`${te}から、少し休みましょう。`,     zh:`（〜之後，稍微休息一下吧）`} : null,
-      masu ? {ja:`できれば${masu}つもりです。`,       zh:`（如果可以，打算〜）`} : null,
-      nai  ? {ja:`今日は${nai}ほうがいいですよ。`,   zh:`（今天最好不要〜哦）`} : null,
-      te   ? {ja:`なぜ${te}いるのですか。`,           zh:`（為什麼在〜呢？）`} : null,
+      {ja:`毎日${word}ようにしています。`,               zh:`（我每天都盡量〜）`},
+      masu ? {ja:`週末は友達と一緒に${masu.replace(/ます$/,'ました')}。`, zh:`（週末和朋友一起〜了）`} : null,
+      te   ? {ja:`${te}くれて、ありがとうございます。`,  zh:`（謝謝你為我〜）`} : null,
+      te   ? {ja:`${te}もいいですか。`,                   zh:`（可以〜嗎？）`} : null,
+      ta   ? {ja:`昨日、久しぶりに${ta}。`,               zh:`（昨天久違地〜了）`} : null,
+      ta   ? {ja:`${ta}あとで、気分がよくなりました。`,  zh:`（〜了之後，心情變好了）`} : null,
+      {ja:`これから${word}ところです。`,                 zh:`（現在正要〜）`},
+      nai  ? {ja:`${nai}ように気をつけています。`,       zh:`（我很小心不要〜）`} : null,
+      masu ? {ja:`よかったら、一緒に${masu.replace(/ます$/,'ませんか')}。`, zh:`（方便的話，要不要一起〜？）`} : null,
     ]);
   }
 
   if (pos==='adj-i') {
     const ta = get('た形'), ku = get('副詞形');
     return pickTwo([
-      {ja:`この料理はとても${word}です。`,             zh:`（這道料理非常〜）`},
-      {ja:`あなたの部屋は${word}ですね。`,             zh:`（你的房間好〜呢）`},
-      {ja:`そんなに${word}ですか。`,                   zh:`（真的那麼〜嗎？）`},
-      ta ? {ja:`昨日はとても${ta}ですね。`,            zh:`（昨天真的很〜呢）`} : null,
-      ku ? {ja:`${ku}なりたいです。`,                  zh:`（想變得〜）`} : null,
-      ku ? {ja:`${ku}話してください。`,                zh:`（請〜地說）`} : null,
-      {ja:`最近、この辺りは${word}ですね。`,           zh:`（最近這附近好〜呢）`},
+      {ja:`今日は昨日より${word}ですね。`,             zh:`（今天比昨天〜呢）`},
+      {ja:`思ったより${word}です。`,                   zh:`（比想像中〜）`},
+      {ja:`こんなに${word}日は久しぶりです。`,         zh:`（好久沒有這麼〜的日子了）`},
+      {ja:`${word}ものが好きです。`,                   zh:`（喜歡〜的東西）`},
+      ta ? {ja:`先週の旅行はとても${ta}です。`,        zh:`（上週的旅行非常〜）`} : null,
+      ku ? {ja:`だんだん${ku}なってきましたね。`,      zh:`（漸漸變得〜了呢）`} : null,
     ]);
   }
 
   if (pos==='adj-na') {
     return pickTwo([
-      {ja:`彼女はとても${word}な人です。`,             zh:`（她是非常〜的人）`},
-      {ja:`この場所は${word}ですね。`,                 zh:`（這個地方好〜呢）`},
-      {ja:`もっと${word}にしてほしいです。`,           zh:`（希望變得更〜一點）`},
-      {ja:`彼の説明は${word}でした。`,                 zh:`（他的說明很〜）`},
-      {ja:`${word}な雰囲気が好きです。`,               zh:`（喜歡〜的氣氛）`},
-      {ja:`どうして${word}なのですか。`,               zh:`（為什麼這麼〜呢？）`},
+      {ja:`ここは${word}で、とても気に入っています。`, zh:`（這裡很〜，我很喜歡）`},
+      {ja:`彼は${word}な性格で、みんなに好かれています。`, zh:`（他個性〜，大家都喜歡他）`},
+      {ja:`もっと${word}な方法はありませんか。`,       zh:`（有沒有更〜的方法呢？）`},
+      {ja:`その考え方は${word}だと思います。`,         zh:`（我覺得那種想法很〜）`},
+      {ja:`${word}な雰囲気のカフェを見つけました。`,   zh:`（找到了一間氣氛〜的咖啡廳）`},
     ]);
   }
 
   if (pos==='n') {
     return pickTwo([
-      {ja:`その${word}はとても大切です。`,             zh:`（那個〜非常重要）`},
-      {ja:`${word}について話しましょう。`,             zh:`（來談談〜吧）`},
-      {ja:`私は${word}に興味があります。`,             zh:`（我對〜感興趣）`},
-      {ja:`この${word}はどういう意味ですか。`,         zh:`（這個〜是什麼意思？）`},
-      {ja:`${word}を正しく理解することが大切です。`,  zh:`（正確理解〜很重要）`},
-      {ja:`彼の${word}はとても印象的でした。`,         zh:`（他的〜令人印象深刻）`},
-      {ja:`新しい${word}が見つかりました。`,           zh:`（找到了新的〜）`},
-      {ja:`${word}のことを調べてみました。`,           zh:`（試著調查了一下〜）`},
-      {ja:`${word}があるかどうか確認しました。`,       zh:`（確認了是否有〜）`},
+      {ja:`私にとって、${word}はとても大切です。`,     zh:`（對我來說，〜非常重要）`},
+      {ja:`${word}について、もっと知りたいです。`,     zh:`（想更了解〜）`},
+      {ja:`昨日、友達と${word}について話しました。`,   zh:`（昨天和朋友聊了〜）`},
+      {ja:`${word}がないと、ちょっと困ります。`,       zh:`（沒有〜的話會有點困擾）`},
+      {ja:`最近、${word}のことをよく考えます。`,       zh:`（最近常常想到〜）`},
+      {ja:`${word}に関する本を読んでいます。`,         zh:`（正在讀關於〜的書）`},
+      {ja:`日本では${word}が話題になっています。`,     zh:`（〜在日本成為話題）`},
     ]);
   }
 
   // exp / prt / conj / adv / etc.
   return pickTwo([
-    {ja:`${word}という表現をよく使います。`,           zh:`（常常使用〜這個表達）`},
-    {ja:`${word}の使い方を練習しましょう。`,           zh:`（來練習〜的用法吧）`},
-    {ja:`${word}はどんな時に使いますか。`,             zh:`（〜在什麼時候使用呢？）`},
+    {ja:`会話の中で「${word}」をよく耳にします。`,     zh:`（在日常對話中常聽到「〜」）`},
+    {ja:`日本人は「${word}」を自然に使っています。`,   zh:`（日本人很自然地使用「〜」）`},
+    {ja:`この場面では「${word}」を使うと自然です。`,   zh:`（在這種場合用「〜」很自然）`},
+    {ja:`ドラマで「${word}」というセリフを聞きました。`, zh:`（在日劇裡聽到「〜」這句台詞）`},
   ]);
 }
 
@@ -17391,6 +17388,11 @@ async function loadAiExamples(word, reading, pos, defs) {
     console.warn('[例句] Tatoeba fallback:', e.message);
     const fallback = autoExamples(word, reading, pos);
     if (document.getElementById('dm-examples')) renderExamplesInto(container, fallback, 'template');
+    // Upgrade the gloss to a real translation of the full sentence (async)
+    const translated = await Promise.all(fallback.map(async ex => ({
+      ja: ex.ja, zh: (await jaToZh(ex.ja)) || ex.zh
+    })));
+    if (document.getElementById('dm-examples')) renderExamplesInto(container, translated, 'template');
   }
 }
 
