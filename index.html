@@ -444,6 +444,12 @@
       border-left: 3px solid var(--red);
     }
     .ex-ja { font-size: 15px; margin-bottom: 5px; color: var(--text); }
+    .ja-link { cursor: pointer; border-bottom: 1px dashed rgba(229,57,53,.45); }
+    .ja-link:hover { color: var(--red-light); }
+    [data-theme="light"] .ja-link { border-bottom-color: rgba(40,95,105,.40); }
+    [data-theme="light"] .ja-link:hover { color: #1b6e7d; }
+    [data-theme="dark"] .ja-link { border-bottom-color: rgba(40,165,180,.45); }
+    [data-theme="dark"] .ja-link:hover { color: rgba(120,210,220,.95); }
     .ex-zh { font-size: 12px; color: var(--muted); }
 
     /* Colloc */
@@ -15201,7 +15207,7 @@ function openGrammarModal(id) {
   const lvc = g.lv.toLowerCase();
   const examples = g.ex.map(e => `
     <div class="gc-ex">
-      <div class="gc-ex-ja">${grammarHighlight(e.ja, q)}</div>
+      <div class="gc-ex-ja">${linkifyJa(e.ja)}</div>
       <div class="gc-ex-zh">${grammarHighlight(e.zh, q)}</div>
     </div>`).join('');
   const noteHTML = g.note
@@ -15841,7 +15847,7 @@ function openModal(id) {
 
   // Examples
   const exHTML = `<div class="sec-lbl">例句</div>` +
-    w.examples.map(e=>`<div class="example"><div class="ex-ja">${e.ja}</div><div class="ex-zh">${e.zh}</div></div>`).join('');
+    w.examples.map(e=>`<div class="example"><div class="ex-ja">${linkifyJa(e.ja)}</div><div class="ex-zh">${e.zh}</div></div>`).join('');
 
   // Collocations
   const colHTML = w.collocations.length ?
@@ -17406,6 +17412,28 @@ async function retryAiExamples() {
   await loadAiExamples(word, reading, pos, defs);
 }
 
+/** Wrap dictionary words inside a Japanese sentence with clickable spans.
+ *  Longest-match scan against the loaded dict; single chars only if kanji. */
+function linkifyJa(s) {
+  const dict = dictState.data;
+  if (!s || !dict || !Object.keys(dict).length) return s;
+  let out = '', i = 0;
+  while (i < s.length) {
+    let hit = null;
+    for (let L = Math.min(6, s.length - i); L >= 1; L--) {
+      const sub = s.substr(i, L);
+      if (L === 1 && !/[一-鿿]/.test(sub)) continue;
+      if (dict[sub]) { hit = sub; break; }
+    }
+    if (hit) {
+      const safe = hit.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+      out += `<span class="ja-link" data-word="${safe}" onclick="openDictModal(this.dataset.word)">${hit}</span>`;
+      i += hit.length;
+    } else { out += s[i]; i++; }
+  }
+  return out;
+}
+
 function renderExamplesInto(container, examples, source) {
   const labelMap = { tatoeba: '（Tatoeba 例句）', template: '（自動模板）' };
   const label = labelMap[source] || '';
@@ -17413,7 +17441,7 @@ function renderExamplesInto(container, examples, source) {
     <div class="sec-lbl">例句 <span style="font-weight:400;font-size:10px;color:var(--muted)">${label}</span></div>
     ${examples.map(e => `
       <div class="example">
-        <div class="ex-ja">${e.ja}</div>
+        <div class="ex-ja">${linkifyJa(e.ja)}</div>
         <div class="ex-zh">${e.zh}</div>
       </div>`).join('')}`;
 }
