@@ -444,6 +444,18 @@
       border-left: 3px solid var(--red);
     }
     .ex-ja { font-size: 15px; margin-bottom: 5px; color: var(--text); }
+    .kanji-chip {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px; padding: 6px 14px; font-size: 20px; font-weight: 700;
+      color: var(--text); cursor: pointer; transition: all var(--transition);
+      font-family: inherit;
+    }
+    .kanji-chip:hover, .kanji-chip.active { border-color: rgba(229,57,53,.5); color: var(--red-light); }
+    [data-theme="light"] .kanji-chip { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.1); }
+    [data-theme="light"] .kanji-chip:hover, [data-theme="light"] .kanji-chip.active { border-color: rgba(40,95,105,.5); color: #1b6e7d; }
+    [data-theme="dark"] .kanji-chip { background: rgba(15,68,92,.14); border-color: rgba(25,85,108,.28); }
+    [data-theme="dark"] .kanji-chip:hover, [data-theme="dark"] .kanji-chip.active { border-color: rgba(40,165,180,.55); color: rgba(120,210,220,.9); }
+
     .ja-link { cursor: pointer; border-bottom: 1px dashed rgba(229,57,53,.45); }
     .ja-link:hover { color: var(--red-light); }
     [data-theme="light"] .ja-link { border-bottom-color: rgba(40,95,105,.40); }
@@ -17595,6 +17607,67 @@ function renderExamplesInto(container, examples, source) {
       </div>`).join('')}`;
 }
 
+/* ── Kanji breakdown (kanjiapi.dev, cached in localStorage) ── */
+const KANJI_CACHE_KEY = 'jp_kanji_v1';
+
+async function kanjiInfo(ch) {
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem(KANJI_CACHE_KEY) || '{}'); } catch {}
+  if (cache[ch]) return cache[ch];
+  const res = await fetch('https://kanjiapi.dev/v1/kanji/' + encodeURIComponent(ch),
+                          { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  const info = {
+    m:   (j.meanings || []).slice(0, 4),
+    on:  (j.on_readings || []).slice(0, 3),
+    kun: (j.kun_readings || []).slice(0, 3),
+    s:   j.stroke_count, jl: j.jlpt,
+  };
+  cache[ch] = info;
+  try { localStorage.setItem(KANJI_CACHE_KEY, JSON.stringify(cache)); } catch {}
+  return info;
+}
+
+async function showKanjiInfo(ch, btn) {
+  const box = document.getElementById('dm-kanji-box');
+  if (!box) return;
+  document.querySelectorAll('.kanji-chip').forEach(b => b.classList.toggle('active', b === btn));
+  box.innerHTML = `<span style="color:var(--muted);font-size:12px">⏳ 載入中…</span>`;
+
+  let info = null;
+  try { info = await kanjiInfo(ch); } catch (e) {}
+  if (!document.getElementById('dm-kanji-box')) return;   // modal closed meanwhile
+
+  // Other dict words using this kanji
+  const words = [];
+  for (const w of Object.keys(dictState.data)) {
+    if (w !== _dictOpenWord && w.includes(ch)) { words.push(w); if (words.length >= 6) break; }
+  }
+  const wordChips = words.map(w => {
+    const sw = w.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return `<span class="related-chip" data-word="${sw}" onclick="openDictModal(this.dataset.word)">${w}</span>`;
+  }).join('');
+
+  box.innerHTML = `
+    ${info ? `
+      <div style="font-size:13px;line-height:1.75">
+        <b style="font-size:17px">${ch}</b>
+        <span style="color:var(--muted);margin-left:8px">${info.s}劃${info.jl ? '・N' + info.jl : ''}</span><br>
+        ${info.m.length ? `意思：<span id="dm-kanji-mean">${info.m.join(', ')}</span><br>` : ''}
+        ${info.on.length ? `音読み：${info.on.join('、')}　` : ''}${info.kun.length ? `訓読み：${info.kun.join('、')}` : ''}
+      </div>` : `<span style="color:var(--muted);font-size:12px">（無法載入漢字資料，請檢查網路）</span>`}
+    ${wordChips ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">${wordChips}</div>` : ''}`;
+
+  // Upgrade English meanings to Chinese asynchronously (cached by zhOf)
+  if (info && info.m.length) {
+    zhOf(info.m.join(', ')).then(t => {
+      const el = document.getElementById('dm-kanji-mean');
+      if (el && t) el.textContent = t;
+    });
+  }
+}
+
 /** Find up to 6 compound/related words in the loaded dict that share a kanji with `word` */
 function findCollocations(word) {
   const kanji = [...word].filter(c => /[\u4e00-\u9fff\u3040-\u309f]/.test(c));
@@ -18283,6 +18356,16 @@ function openDictModal(word) {
   /* ── Example sentences (AI-generated via Gemini; placeholder filled async) ── */
   const exHTML = `<div id="dm-examples"></div>`;
 
+  /* ── Kanji breakdown: tappable chips per unique kanji ── */
+  const kanjiChars = [...new Set([...word].filter(c => /[一-鿿]/.test(c)))];
+  const kanjiHTML = kanjiChars.length ? `
+    <div class="sec-lbl">漢字分解</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      ${kanjiChars.map(c =>
+        `<button class="kanji-chip" data-k="${c}" onclick="showKanjiInfo(this.dataset.k, this)">${c}</button>`).join('')}
+    </div>
+    <div id="dm-kanji-box"></div>` : '';
+
   /* ── Common collocations: dict words that share a kanji ── */
   const collocWords = findCollocations(word);
   const collocHTML = collocWords.length ? `
@@ -18349,6 +18432,7 @@ function openDictModal(word) {
       ${defsHTML}
       ${conjHTML}
       ${exHTML}
+      ${kanjiHTML}
       ${collocHTML}
       ${relHTML}
       <div class="sec-lbl" style="margin-top:22px">學習狀態</div>
