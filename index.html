@@ -1626,6 +1626,8 @@
   <script>(function(){var t=localStorage.getItem('jp_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <!-- NHK pitch accent lookup (built by build_pitch_accent.py) -->
   <script src="pitch_accent.js"></script>
+  <!-- Pre-baked zh-TW translations of JMdict definitions (built by _dev/pretranslate.py) -->
+  <script src="data/zh_defs.js" defer></script>
   <!-- Firebase SDK (compat / global-variable style — no bundler required) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -16244,6 +16246,7 @@ function saveZhCache() {
 // Translate one English string → Traditional Chinese via Google Translate (unofficial)
 async function zhOf(text) {
   if (!text || typeof text !== 'string' || !text.trim()) return text;
+  if (window.ZH_DEFS && window.ZH_DEFS[text]) return window.ZH_DEFS[text];  // baked at build time
   const c = loadZhCache();
   if (c[text]) return c[text];
   try {
@@ -16264,6 +16267,7 @@ async function zhDefsArr(arr) {
 
 // Sync cache-only lookup (no network — for inline card renders)
 function zhSync(text) {
+  if (window.ZH_DEFS && window.ZH_DEFS[text]) return window.ZH_DEFS[text];
   return loadZhCache()[text] || text;
 }
 

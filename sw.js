@@ -65,7 +65,8 @@ self.addEventListener('fetch', event => {
       url.hostname.includes('google')) return;
 
   // Dict data files — cache-first (they're large and stable)
-  if (url.pathname.includes('_dict.js') || url.pathname === '/pitch_accent.js') {
+  if (url.pathname.includes('_dict.js') || url.pathname === '/pitch_accent.js' ||
+      url.pathname === '/data/zh_defs.js') {
     event.respondWith(cacheFirst(request, DICT_CACHE));
     return;
   }
